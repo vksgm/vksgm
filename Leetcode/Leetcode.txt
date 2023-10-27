@@ -1,0 +1,505 @@
+*&---------------------------------------------------------------------*
+*& Report YDS_string_demo
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT yds_string_demo MESSAGE-ID cfd_runtime.
+
+
+DATA lv_saknr2 TYPE hkont.
+DATA lv_saknr3 TYPE hkont.
+
+*DATA lt_Del TYPE STANDARD TABLE OF zglt_cill_msgmap.
+SELECT * FROM zglt_fiorg_map WHERE land1 = 'US'AND divsn = '07' AND store = '40200'
+*  AND ( fkber = 0101 OR fkber = 0501 )
+  AND center_type = 'HAW01'
+  INTO TABLE @DATA(lt_fiorg).
+
+*SELECT * FROM ZGLT_CILL_MSGMAP INTO TABLE @DATA(lt_Test).
+*
+* READ TABLE lt_test ASSIGNING FIELD-SYMBOL(<lfs_1>) INDEX 1.
+*
+*  <lfs_1>-parameter1 = 'COMP_CODE'.
+*
+*  lt_del = VALUE #( ( lt_test[ 2 ] ) ).
+*
+*  delete lt_test INDEX 2.
+*
+*
+*  MODIFY ZGLT_CILL_MSGMAP FROM TABLE lt_test.
+*
+*  DELETE zglt_cill_msgmap FROM TABLE lt_Del.
+*
+*  COMMIT WORK.
+*
+*  ROLLBACK WORK.
+
+
+  LOOP AT lt_fiorg INTO DATA(ls_fiorg_delete_temp).
+
+         CALL FUNCTION 'ENQUEUE_EZ_FIORG_MAP'
+           EXPORTING
+             mode_zglt_fiorg_map = 'E'              " Lock mode for table ZGLT_FIORG_MAP
+             mandt               = ls_fiorg_delete_temp-mandt         " Enqueue argument 01
+             land1               = ls_fiorg_delete_temp-land1         " Enqueue argument 02
+             divsn               = ls_fiorg_delete_temp-divsn         " Enqueue argument 03
+             store               = ls_fiorg_delete_temp-store         " Enqueue argument 04
+             fkber               = ls_fiorg_delete_temp-fkber         " Enqueue argument 05
+             datbi               = ls_fiorg_delete_temp-datbi         " Enqueue argument 06
+          EXCEPTIONS
+            foreign_lock              = 1
+            system_failure            = 2
+            OTHERS                    = 3  .
+  IF sy-subrc NE 0.
+  ENDIF.
+ENDLOOP.
+  SELECT SINGLE saknr FROM skb1 INTO @DATA(lv_saknr).
+
+  DATA(lv_saknr1) = lv_saknr.
+
+  CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+    EXPORTING
+      input  = lv_saknr
+    IMPORTING
+      output = lv_saknr2.
+
+*  lv_saknr2 = | { lv_saknr ALPHA = OUT SIGN = LEFT } |.
+*  lv_saknr3 = | { lv_saknr2 ALPHA = IN } |.
+
+*MESSAGE s075(cfd_runtime) TYPE 'E' .
+
+*DATA lt_table TYPE STANDARD TABLE OF zglt_elim_entry.
+*
+*lt_table = VALUE #( ( group_id = 'Group1' src_bukrs = 'A144' src_account = '4101070' dest_bukrs = 'A998' dest_account = '4101070' prctr = 'US0871702' multiplier = -1 )
+*                    ( group_id = 'Group1' src_bukrs = 'A144' src_account = '4509008' dest_bukrs = 'A998' dest_account = '4509008' prctr = 'US0871702' kostl = '12US08717' rbusa = 'W800' multiplier = -1  )
+*                    ( group_id = 'Group2' src_bukrs = 'B004' src_account = '4101070' dest_bukrs = 'B017' dest_account = '4101070' prctr = 'CA0888801' multiplier = -1 )
+*                    ( group_id = 'Group2' src_bukrs = 'B004' src_account = '4509008' dest_bukrs = 'B017' dest_account = '4509008' prctr = 'CA0888801' kostl = '10CA08888' rbusa = 'W800' multiplier = -1  ) ).
+*
+*
+*MODIFY zglt_elim_entry FROM TABLE LT_tABLE.
+*
+
+  SELECT CAST( multiplier AS INT2 ) AS multiplier FROM zdemo_test INTO TABLE @DATA(lt_demo).
+
+  READ TABLE lt_demo INDEX 1 INTO DATA(ls_demo).
+
+  ls_demo-multiplier = ls_demo-multiplier * ls_demo-multiplier.
+
+  IF sy-subrc EQ 0.
+
+  ENDIF.
+
+
+*select * FROM zglt_elim_entry INTO TABLE lt_table.
+*
+*
+*  delete zglt_elim_entry FROM TABLE lt_table.
+*
+
+
+  DATA i TYPE i.
+
+*--> Prob.#13 Roman to integer
+
+  TYPES: BEGIN OF ty_hash,
+           key   TYPE char2,
+           value TYPE d,
+         END OF ty_hash.
+
+
+  DATA: lt_hash TYPE HASHED TABLE OF ty_hash WITH UNIQUE KEY key.
+
+  lt_hash = VALUE #( ( key = 'I' value = 1 )
+                     ( key = 'V' value = 5 )
+                     ( key = 'X' value = 10 )
+                     ( key = 'L' value = 50 )
+                     ( key = 'C' value = 100 )
+                     ( key = 'D' value = 500 )
+                     ( key = 'M' value = 1000 ) ).
+
+
+  DATA: lv_input TYPE string VALUE 'MCMXCIV'. "M = 1000, CM = 900, XC = 90 and IV = 4
+
+*--> Corner Case.
+  IF strlen( lv_input ) IS INITIAL.
+    RETURN.
+  ENDIF.
+
+  DATA: lv_p1 TYPE i.
+
+  lv_p1 = strlen( lv_input ) - 1. " iterating from last value of string
+
+  DATA lv_prev_value TYPE c.
+
+
+  DATA result TYPE i.
+
+  WHILE lv_p1 GE 0.
+
+    READ TABLE lt_hash WITH KEY key = lv_input+lv_p1(1) INTO DATA(ls_hash).
+
+    IF sy-subrc NE 0.
+      EXIT.
+    ENDIF.
+*--> for 3 combinations mentioned in the problem, the result will be subtracted, else it will be added.
+    result =  COND #( WHEN ls_hash-key = 'I' AND ( lv_prev_value = 'V' OR lv_prev_value = 'X' ) THEN result - ls_hash-value
+                      WHEN ls_hash-key = 'X' AND ( lv_prev_value = 'L' OR lv_prev_value = 'C' ) THEN result - ls_hash-value
+                      WHEN ls_hash-key = 'C' AND ( lv_prev_value = 'D' OR lv_prev_value = 'M' ) THEN result - ls_hash-value
+                      ELSE result + ls_hash-value ).
+
+    lv_prev_value = ls_hash-key.
+    lv_p1 = lv_p1 - 1.
+
+  ENDWHILE.
+
+  WRITE: |The roman to integer conversion for { lv_input } is { result }|.
+*---------------------------------------------------------------------------------------------------------------------------------------------------------
+*# Problem #14. Longest common prefix.
+
+  DATA :lv_common_prefix TYPE string.
+
+  TYPES:BEGIN OF ty_input,
+          value TYPE string,
+        END OF ty_input.
+
+  DATA lt_input TYPE STANDARD TABLE OF ty_input.
+
+  lt_input = VALUE #(  ( value = 'flower' ) ( value = 'flow' ) ( value = 'float' ) ).
+
+  DATA(j) = 0.
+
+  lv_common_prefix = lt_input[ 1 ]-value.
+
+  DO lines( lt_input ) TIMES.
+
+    CLEAR j.
+
+    IF sy-index = 1. "dont compare 1st record
+      CONTINUE.
+    ENDIF.
+
+    IF lv_common_prefix IS INITIAL.
+      WRITE: |No common prefix found|.
+      EXIT. " no common prefix found.
+    ENDIF.
+
+    DATA(lv_curr_str) = lt_input[ sy-index ]-value.
+
+    DATA(lv_compare_str) = lv_common_prefix.
+
+    CLEAR lv_common_prefix.
+
+    DO ( COND i( WHEN strlen( lv_compare_str ) LE strlen( lv_curr_str ) THEN strlen( lv_compare_str )
+                 ELSE strlen( lv_curr_str ) ) ) TIMES. "pick the lowest strlen
+
+      IF lv_compare_str+j(1) = lv_curr_str+j(1).
+        lv_common_prefix = lv_common_prefix && lv_compare_str+j(1)."this would be wrong if there is a space in the input
+      ELSE.
+        EXIT.
+      ENDIF.
+      j = j + 1.
+    ENDDO.
+    WRITE: | the common prefix is { lv_common_prefix } |.
+  ENDDO.
+
+*--------------------------------------------------------------------------------------------------------------------------------------------------------*
+*#2114. Max words found in sentence.
+*--->!!! NEED TO CHECK NEW STRING OPERATIONS---!!!
+  lv_input = 'alice and bob,i think so too,this is great thanks very much'.
+
+
+  SPLIT lv_input AT ',' INTO TABLE DATA(lt_string) .
+  DATA lv_max TYPE i.
+
+  LOOP AT lt_string INTO DATA(ls_string).
+
+    SPLIT ls_string AT space INTO TABLE DATA(lv_words).
+
+    lv_max = COND #( WHEN lv_max GE lines( lv_words ) THEN lv_max
+                           ELSE lines( lv_words ) ).
+
+  ENDLOOP.
+
+  WRITE: | The maximum length of the sentence is { lv_max } |.
+*------------------------------------------------------------------------------------------------------------------------------------------------------*
+*#26. remove duplicates in sorted array.( delete adjacent duplicates in ABAP )
+  DATA: lt_int TYPE integer_tab.
+
+  lt_int = VALUE #( ( 1 ) ( 1 ) ( 2 ) ( 2 ) ( 3 ) ).
+
+*--> Two pointer approach
+  i = 1. j = 2.
+
+  DO lines( lt_int ) TIMES.
+
+    READ TABLE lt_int ASSIGNING FIELD-SYMBOL(<lfs_int>) INDEX j.
+
+* -if both numbers are equal, increment j until it reaches a different number.
+    IF lt_int[ i ] = lt_int[ j ].
+      j = j  + 1.
+    ELSE.
+      i = i + 1." increment to next index
+      lt_int[ i ] = <lfs_int>. " copy the new number to the next index.
+    ENDIF.
+
+  ENDDO.
+
+  WRITE: | The sorted array without duplicates ends at { i }th index|.
+
+  LOOP AT lt_int INTO DATA(ls_int) TO i.
+    WRITE ls_int.
+  ENDLOOP.
+**------------------------------------------------------------------------------------------------------------------------------------------------------
+*#20 valid paranthesis
+*--> use the internal table as a stack ( LIFO )
+  lv_input = '([{})'.
+
+  CLEAR lt_input.
+
+  CLEAR i.
+  DATA lv_mode TYPE c.
+  DO strlen( lv_input ) TIMES.
+
+    DATA(lv_var) = lv_input+i(1).
+
+*  IF lv_VAR NOT IN '()()'.
+*    EXIT.
+*  ENDIF.
+
+    IF sy-index = 1.
+      lt_input = VALUE #( BASE lt_input ( value = lv_var  ) ).
+      i = i + 1.
+      CONTINUE.
+    ENDIF.
+
+    DATA(lv_last_value) = lt_input[ lines( lt_input ) ]-value. " reading last index value
+    lv_mode = COND #( WHEN ( lv_var = '{' OR lv_var = '(' OR lv_var = '[' ) THEN 'U' "update the stack incase of open brackets
+                            WHEN ( ( lv_var = ')' AND lv_last_value = '(' ) OR
+                                   ( lv_var = '}' AND lv_last_value = '{' ) OR
+                                   ( lv_var = ']' AND lv_last_value = '[' ) ) THEN 'D' "delete the stack incase the brackets are balanced
+                            ELSE 'X' ). " Exit the process in case imbalanced brackets
+
+    IF lv_mode = 'U'.
+      lt_input = VALUE #( BASE lt_input ( value = lv_var  ) ).
+    ELSEIF lv_mode = 'D'.
+      DELETE lt_input INDEX lines( lt_input ).
+    ELSE.
+      EXIT.
+    ENDIF.
+    i = i + 1.
+  ENDDO.
+
+  IF lt_input IS INITIAL. " balanced
+    WRITE: |the string is balanced'|.
+  ELSE.
+    WRITE: |the string is not balanced'|.
+  ENDIF.
+*----------------------------------------------------------------------------------------------------------------------------------------\\
+** #70. Container with most water
+
+  DATA lv_area TYPE i.
+  DATA lv_area_max TYPE i.
+  lt_int = VALUE #( ( 1 ) ( 8 ) ( 6 ) ( 2 ) ( 5 ) ( 4 ) ( 8 ) ( 3 ) ( 7 ) ).
+
+*--> brute force will  be comparing each element with all the other elements. the complexity will be o(N^2 ).
+*--> for linear time use 2 pointer approach.
+*--> for problems like max area try to think of using pointers starting from the end.
+
+  i = 1.
+  j = lines( lt_int ).
+
+  WHILE ( i < j ). " until the pointer meet
+
+*---> Area   = length * width
+*---> length =  the minimum height of the two pillars
+*---> width  =  distance between the pointers.
+    lv_area =  COND #( WHEN lt_int[ i ] < lt_int[ j ] THEN lt_int[ i ] ELSE lt_int[ j ] ) * ( j - i ).
+
+    lv_area_max = COND #( WHEN lv_area_max GT lv_area THEN lv_area_max ELSE lv_area ).
+
+    CLEAR lv_area.
+* --> since the max area is the need, we can move the pointers if it has minimum value.
+
+    i = COND #( WHEN i < j THEN i + 1 ELSE i ).
+    j = COND #(  WHEN j < i THEN j - 1 ELSE j ).
+
+  ENDWHILE.
+
+  WRITE : | the maximum area is { lv_area_max } |.
+
+*-----------------------------------------------------------------------------------------------------------------------------------------\\
+*#118. Pascal's Triangle..
+*---> DYNAMIC COLUMN CREATION
+
+  DATA(n) = 6.
+
+  DATA lt_dynamic TYPE STANDARD TABLE OF REF TO data.
+
+*#1299 Replace Elements with Greatest Element on Right Side
+  lt_int = VALUE #( ( 17 ) ( 18 ) ( 5 ) ( 4 ) ( 6 ) ( 1 ) ).
+
+*--corner case.
+  IF lines( lt_int ) = 1.
+
+    WRITE | -1 |.
+
+  ELSE.
+
+* --> Traverse from last element ( as mentioned as right  side ; )
+    i = lines( lt_int ).
+    DATA(lv_temp) = lt_int[ i ]. " store the current index value in a temp variable.
+    lt_int[ i ] = -1. "store the right most as default -1 &
+    lv_max = -1.   "lv_max also the same
+
+    WHILE i > 1.
+
+      i = i - 1. "decrement i.
+
+      lv_max = COND #( WHEN lv_temp GT lv_max THEN lv_temp
+                       ELSE lv_max ).
+      lv_temp = lt_int[ i ]. "set back the temp variabel to current index value
+
+      lt_int[ i ] = lv_max. "replace with max value.
+
+
+    ENDWHILE.
+  ENDIF.
+
+  LOOP AT lt_int INTO ls_int.
+    WRITE:/n | { ls_int } |.
+  ENDLOOP.
+*---------------------------------------------------------------------------------------------------------------------**
+*#392 Is Subsequence.
+  DATA(str1) = 'Walmart'.
+  DATA(str2) = 'lmt'.
+
+  DATA(lv_pos) = 0.
+  DATA(lv_length) = strlen( str2 ) - 1.
+  DO strlen( str1 ) TIMES.
+
+*--If string is found.  ( always compare the first letter of str2 )
+    IF str1+lv_pos(1) = str2+0(1).
+* -> remove the first letter from str2 for further comparision.
+      str2 = str2+1(lv_length).
+    ENDIF.
+
+    lv_pos = lv_pos + 1.
+  ENDDO.
+
+  IF str2 IS INITIAL.
+    WRITE: |The String { str2 } is the subsequence of { str1 } |.
+  ELSE.
+    WRITE: |The String { str2 } is not the subsequence of { str1 } |.
+  ENDIF.
+*-------------------------------------------------------------------------------------------------------------------------**
+*#1189- Max Number of Balloons.
+*--For the input string balloon get the hash map to do frequency counting
+
+  str1 = 'Balloon'. str2 = 'nlaebolko'.
+
+  CLEAR lt_hash.
+
+  DATA: lt_hash2 TYPE HASHED TABLE OF ty_hash WITH UNIQUE KEY key.
+
+*--> preparing frequency counting for source.
+*DO strlen( str1 ) TIMES.
+*
+*  IF line_exists( lt_hash[ key = str1+sy-index(1) ] ).
+*    READ TABLE lt_hash WITH KEY key = str1+sy-index(1) ASSIGNING FIELD-SYMBOL(<lfs_key>).
+*    IF <lfs_key> IS ASSIGNED.
+*      <lfs_key>-value = <lfs_key>-value + 1.
+*    ENDIF.
+*  ELSE.
+*    lt_hash = VALUE #( BASE lt_hash ( key = str1+sy-index(1) value = 1 ) ).
+*  ENDIF.
+*ENDDO.
+*
+**--Prepare frequency counting for target.
+*DO strlen( str2 ) TIMES.
+*
+*  IF line_exists( lt_hash[ key = str1+sy-index(1) ] ).
+*    READ TABLE lt_hash2 WITH KEY key = str1+sy-index(1) ASSIGNING <lfs_key>.
+*    IF <lfs_key> IS ASSIGNED.
+*      <lfs_key>-value = <lfs_key>-value + 1.
+*    ENDIF.
+*  ELSE.
+*    lt_hash2 = VALUE #( BASE lt_hash2 ( key = str1+sy-index(1) value = 1 ) ).
+*  ENDIF.
+*ENDDO.
+*
+**--> Divide the values of str1 / str2.
+*LOOP AT lt_hash2 ASSIGNING FIELD-SYMBOL(<lfs_hash2>).
+*
+*  READ TABLE lt_hash WITH KEY key = <lfs_hash2>-key INTO DATA(ls_hash1).
+*
+*  IF sy-subrc NE 0.
+*    WRITE: | No string of ballons formed |.
+*    EXIT.
+*  ENDIF.
+*
+*  <lfs_hash2>-value = <lfs_hash2>-value / ls_hash1-value.
+*
+*ENDLOOP.
+*
+** -> The minimum value in lt_hash2 will be the maximum time we can create the word balloon .
+*
+*DATA lv_count TYPE i.
+*
+*LOOP AT lt_hash2 ASSIGNING <lfs_hash2>.
+*
+*  lv_count = COND #( WHEN lv_count LE <lfs_hash2>-value THEN lv_count  ELSE <lfs_hash2>-value ).
+*
+*ENDLOOP.
+*------------------------------------------------------------------------------------------------------------------------*
+
+*665# Non-decreasing Array
+
+  lt_int = VALUE #( ( 4 ) ( 1 ) ( 2 ) ( 3 ) ).
+
+  DATA(lv_swap) = 0.
+
+*  --> Traverse from the last before element.
+  i = lines( lt_int ) - 1.
+  lv_max = lt_int[ lines( lt_int ) ]. " Store the last values.
+
+  WHILE i GE 1.
+
+    IF lt_int[ i ] < lv_max.
+      lv_max = lt_int[ i ]. " if it is in increasing order, no change is needed.
+    ELSE.
+      lt_int[ i ] = lv_max - 1. " set to the previous value to make it as acending order
+      lv_max = lt_int[ i ].
+      lv_swap = lv_swap + 1.
+    ENDIF.
+
+    IF lv_swap GT 1.
+      WRITE: | The non decreasing array is not possible |.
+      EXIT. " not more than 2 swaps possible.
+    ENDIF.
+
+    i = i - 1.
+  ENDWHILE.
+
+  LOOP AT lt_int INTO ls_int.
+    WRITE: /n | { ls_int } |.
+  ENDLOOP.
+
+*929 Unique Email address
+
+
+  DATA(lv_str) = |ab.cd.e+remove.ad@gmail.com|.
+
+* 1. Split local name & domain name
+
+  SPLIT lv_str AT '@' INTO DATA(lv_local) DATA(lv_domain).
+
+  IF sy-subrc NE 0.
+* Error Handling
+  ENDIF.
+
+
+
+
+
+**--->#70 -  Climbing stairs
+*--> !!---Dynamic Programming--!!
