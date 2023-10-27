@@ -7,7 +7,6 @@
 
 REPORT yds_string_demo MESSAGE-ID cfd_runtime.
 
-
 DATA lv_saknr2 TYPE hkont.
 DATA lv_saknr3 TYPE hkont.
 
