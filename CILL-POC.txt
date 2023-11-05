@@ -1,0 +1,2943 @@
+class ZFGLCL_I01418_CILL_POC definition
+  public
+  final
+  create public .
+
+public section.
+
+  types:
+    BEGIN OF gty_s_recon,
+        country_key         TYPE land1_gp,
+        batch_id            TYPE zd_cill_id,
+        message_type        TYPE bapi_mtype,
+        creation_date       TYPE erdat,
+        debit               TYPE wrbtr,
+        credit              TYPE wrbtr,
+        document_line_count TYPE zd_line_count,
+        idoc_count          TYPE zd_line_count,
+        ack_count           TYPE zd_line_count,
+        batch_id01          TYPE zd_cill_id,
+        retail_debit_amount    TYPE wrbtr,
+        retail_credit_amount   TYPE wrbtr,
+      END OF gty_s_recon .
+  types:
+    gty_t_recon TYPE STANDARD TABLE OF gty_s_recon .
+  types:
+    gty_t_log_table TYPE STANDARD TABLE OF zglt_cill_log .
+  types:
+    BEGIN OF gty_s_idoc ,
+        sign   TYPE char1,
+        option TYPE char2,
+        low    TYPE edidc-docnum,
+        high   TYPE edidc-docnum,
+      END OF gty_s_idoc .
+  types:
+    gty_t_idoc TYPE STANDARD TABLE OF gty_s_idoc .
+  types:
+    BEGIN OF gty_s_cill,
+        sign   TYPE char1,
+        option TYPE char2,
+        low    TYPE zd_cill_id,
+        high   TYPE zd_cill_id,
+      END OF gty_s_cill .
+  types:
+    gty_t_cill TYPE STANDARD TABLE OF gty_s_cill .
+  types:
+    BEGIN OF gty_s_data_tab,
+        iv_input  TYPE string,
+        ev_output TYPE string,
+      END OF gty_s_data_tab .
+
+  constants GC_TVARVC_NAME type RVARI_VNAM value 'XYZ' ##NO_TEXT.
+  constants GC_INTERFACE type CHAR6 value 'I01412' ##NO_TEXT.
+  constants GC_PROCESS_AREA type CHAR2 value 'GL' ##NO_TEXT.
+  constants GC_E type CHAR1 value 'E' ##NO_TEXT.
+  constants GC_S type CHAR1 value 'S' ##NO_TEXT.
+  constants GC_E1BPACHE09 type EDILSEGTYP value 'E1BPACHE09' ##NO_TEXT.
+  constants GC_E1BPACGL09 type EDILSEGTYP value 'E1BPACGL09' ##NO_TEXT.
+  constants GC_E1BPACCR09 type EDILSEGTYP value 'E1BPACCR09' ##NO_TEXT.
+  constants GC_E1BPPAREX type EDILSEGTYP value 'E1BPPAREX' ##NO_TEXT.
+  constants GC_E1BPACPA09 type EDILSEGTYP value 'E1BPACPA09' ##NO_TEXT.
+  constants GC_I type CHAR1 value 'I' ##NO_TEXT.
+  constants GC_EQ type CHAR2 value 'EQ' ##NO_TEXT.
+  constants GC_01 type CHAR02 value '01' ##NO_TEXT.
+  constants GC_02 type CHAR02 value '02' ##NO_TEXT.
+  constants GC_FUNC_ID type FDT_UUID value '0050568939BC1EDBB7FA5A133624D7C7' ##NO_TEXT.
+  constants GC_RETENTION type STRING value 'RETENTION_DAYS' ##NO_TEXT.
+  constants GC_STATUS_68 type EDI_STATUS value '68' ##NO_TEXT.
+  constants GC_IDOC_COUNT type STRING value 'OUTBOUND_IDOC_COUNT' ##NO_TEXT.
+  constants GC_04 type CHAR02 value '04' ##NO_TEXT.
+  constants GC_ACKN type CHAR1 value 'A' ##NO_TEXT.
+  constants GC_RW type SYMSGID value 'RW' ##NO_TEXT.
+  constants GC_609 type SYMSGNO value '609' ##NO_TEXT.
+  constants GC_F5 type SYMSGID value 'F5' ##NO_TEXT.
+  constants GC_808 type SYMSGNO value '808' ##NO_TEXT.
+  constants GC_165 type SYMSGNO value '165' ##NO_TEXT.
+  constants GC_814 type SYMSGNO value '814' ##NO_TEXT.
+  constants GC_ZFGL type SYMSGID value 'ZFGL' ##NO_TEXT.
+  constants GC_002 type SYMSGNO value '002' ##NO_TEXT.
+  constants GC_003 type SYMSGNO value '003' ##NO_TEXT.
+  constants GC_004 type SYMSGNO value '004' ##NO_TEXT.
+  constants GC_005 type SYMSGNO value '005' ##NO_TEXT.
+  constants GC_033 type SYMSGNO value '033' ##NO_TEXT.
+  constants GC_ZFINGL type /AIF/NS value 'ZFINGL' ##NO_TEXT.
+  constants GC_OB1418CILL type /AIF/IFNAME value 'OB1418CILL' ##NO_TEXT.
+  constants GC_00001 type /AIF/IFVERSION value '00001' ##NO_TEXT.
+  constants GC_FN type SYMSGID value 'FN' ##NO_TEXT.
+  constants GC_031 type SYMSGNO value '031' ##NO_TEXT.
+  constants GC_162 type SYMSGNO value '162' ##NO_TEXT.
+  constants GC_KM type SYMSGID value 'KM' ##NO_TEXT.
+  constants GC_FAGL type SYMSGID value 'FAGL_ORG_UNITS' ##NO_TEXT.
+  constants GC_700 type SYMSGNO value '700' ##NO_TEXT.
+  constants GC_001 type SYMSGNO value '001' ##NO_TEXT.
+  constants GC_026 type SYMSGNO value '026' ##NO_TEXT.
+  constants GC_351 type SYMSGNO value '351' ##NO_TEXT.
+  constants GC_KI type SYMSGID value 'KI' ##NO_TEXT.
+  constants GC_222 type SYMSGNO value '222' ##NO_TEXT.
+  constants GC_260 type SYMSGNO value '260' ##NO_TEXT.
+  constants GC_102 type SYMSGNO value '102' ##NO_TEXT.
+  constants GC_104 type SYMSGNO value '104' ##NO_TEXT.
+  constants GC_ZFGLT_CHANNEL type SYMSGV value 'ZFGLT_CHANNEL' ##NO_TEXT.
+
+  class-methods PURGE_DATA
+    importing
+      !IV_LOG_TABLE type CHAR1
+      !IV_RECON_TABLE type CHAR1 .
+  class-methods ADD_RESPONSE_TO_TABLE
+    importing
+      !IT_IDOC_DATA type EDIDD_TT optional
+      !IT_MESSAGES type BAPIRET2_T
+      !IS_EDIDC type EDIDC optional
+    exporting
+      !ET_RETURN type BAPIRET2_T .
+  class-methods SEND_OUTBOUND_RESPONSE
+    importing
+      !IV_FLAG type CHAR1 optional
+      !IV_ACTIVATE_ACK_COUNT type CHAR1 optional
+      !IV_PACKAGE_SIZE type I optional
+    changing
+      !CT_TABLE type GTY_T_LOG_TABLE .
+  class-methods SIMULATION_CHECK
+    importing
+      !IT_IDOC_DATA type EDIDD_TT optional
+      !IT_MESSAGES type BAPIRET2_T
+      !IS_EDIDC type EDIDC optional
+    exporting
+      !ET_RETURN type BAPIRET2_T
+    changing
+      !CT_SIMU_MESSAGES type BAPIRET2_T
+      !CT_ERR_ITEMS type BAPIACGL09_TAB .
+  class-methods I01528_SEND_RECON
+    importing
+      !IV_FLAG type CHAR1 optional
+      !IV_COUNTRY type LAND1 optional
+    changing
+      !CT_TABLE type GTY_T_RECON optional
+      !CT_CILL_LOG type GTY_T_LOG_TABLE optional .
+  class-methods SEND_RECON_PROXY
+    importing
+      !IV_PROXY_TYPE type CHAR1
+      !IV_PROXY_PER_BATCH type INT4
+      !IV_ADHOC_RUN type CHAR1 optional
+      !IV_COUNTRY type LAND1 optional
+    changing
+      !CV_TOTAL_LINES type INT4 optional
+      !CT_TABLE type GTY_T_RECON
+      !CV_COUNT_PROXY type INT4 optional
+      !CT_RETURN type BAPIRET2_T .
+  class-methods ENQUEUE_CILL_TABLE
+    importing
+      !IV_CILLID type ZD_CILL_ID
+      !IV_LOCK_MODE type CHAR1 default 'E'
+      !IV_WAIT_TILL type SY-TABIX default '3'
+    exporting
+      !EV_TIMEUP type CHAR1 .
+  class-methods DEQUEUE_CILL_TABLE
+    importing
+      !IV_CILLID type ZD_CILL_ID
+      !IV_LOCK_MODE type CHAR1 .
+  PROTECTED SECTION.
+private section.
+
+  types:
+    BEGIN OF gty_s_t004f,
+        fstag TYPE fstag,
+        faus1 TYPE faus1,
+      END OF gty_s_t004f .
+  types:
+    BEGIN OF gty_s_bukrs,
+        bukrs TYPE bukrs,
+      END OF gty_s_bukrs .
+  types:
+    BEGIN OF gty_s_blart,
+        blart TYPE blart,
+      END OF gty_s_blart .
+  types:
+    BEGIN OF gty_s_gsber,
+        gsber TYPE gsber,
+      END OF gty_s_gsber .
+  types:
+    BEGIN OF gty_s_skb1,
+        bukrs TYPE bukrs,
+        saknr TYPE saknr,
+        fstag TYPE fstag,
+      END OF gty_s_skb1 .
+  types:
+    BEGIN OF gty_s_sim_messages.
+        INCLUDE  TYPE bapiret2.
+    TYPES del_flag TYPE char1.
+    TYPES END OF gty_s_sim_messages .
+  types:
+    BEGIN OF gty_s_prctr,
+        prctr TYPE prctr,
+        datbi TYPE datbi,
+        kokrs TYPE kokrs,
+      END OF gty_s_prctr .
+  types:
+    BEGIN OF gty_s_costcenter,
+        kokrs TYPE kokrs,
+        kostl TYPE kostl,
+        datbi TYPE datbi,
+      END OF gty_s_costcenter .
+  types:
+    gty_t_bukrs TYPE SORTED TABLE OF gty_s_bukrs WITH NON-UNIQUE KEY bukrs .
+  types:
+    gty_t_blart TYPE SORTED TABLE OF gty_s_blart WITH NON-UNIQUE KEY blart .
+  types:
+    gty_t_gsber TYPE SORTED TABLE OF gty_s_gsber WITH NON-UNIQUE KEY gsber .
+  types:
+    gty_t_t004f TYPE SORTED TABLE OF gty_s_t004f WITH NON-UNIQUE KEY fstag .
+  types:
+    gty_t_bapiacgl09 TYPE STANDARD TABLE OF bapiacgl09 .
+  types:
+    gty_t_skb1 TYPE SORTED TABLE OF gty_s_skb1 WITH NON-UNIQUE KEY fstag .
+  types:
+    gty_t_sim_msg TYPE STANDARD TABLE OF gty_s_sim_messages .
+  types:
+    gty_t_prctr TYPE SORTED TABLE OF gty_s_prctr WITH NON-UNIQUE KEY prctr .
+  types:
+    gty_t_costcenter TYPE SORTED TABLE OF gty_s_costcenter WITH NON-UNIQUE KEY kostl .
+  types:
+    gty_t_cill_log TYPE STANDARD TABLE OF zglt_cill_log .
+  types:
+    gty_t_log_msg TYPE STANDARD TABLE OF zglt_log_msg .
+  types:
+    gty_t_cill_msg TYPE STANDARD TABLE OF zglt_cill_msg .
+
+  class-methods GET_VALIDATION
+    exporting
+      !ET_BUKRS type GTY_T_BUKRS
+      !ET_BLART type GTY_T_BLART
+      !ET_T004F type GTY_T_T004F
+      !ET_TGSB type GTY_T_GSBER
+      !ET_SKB1 type GTY_T_SKB1
+      !ET_PRCTR type GTY_T_PRCTR
+      !ET_COSTCENTER type GTY_T_COSTCENTER
+    changing
+      !CT_ACCOUNTGL type GTY_T_BAPIACGL09 .
+  class-methods VALIDATE_BUSINESS_AREA
+    importing
+      !IT_TGSB type GTY_T_GSBER
+    changing
+      !CT_SIM_MSG type GTY_T_SIM_MSG
+      !CS_ACCOUNTGL type BAPIACGL09 .
+  class-methods VALIDATE_PROFIT_CENTER
+    importing
+      !IT_PRCTR type GTY_T_PRCTR
+    changing
+      !CT_SIM_MSG type GTY_T_SIM_MSG
+      !CS_ACCOUNTGL type BAPIACGL09 .
+  class-methods VALIDATE_COST_CENTER
+    importing
+      !IT_COSTCENTER type GTY_T_COSTCENTER
+    changing
+      !CT_SIM_MSG type GTY_T_SIM_MSG
+      !CS_ACCOUNTGL type BAPIACGL09 .
+  class-methods VALIDATE_COMPANY_CODE
+    importing
+      !IT_BUKRS type GTY_T_BUKRS
+    changing
+      !CS_ACCOUNTGL type BAPIACGL09
+      !CT_SIM_MSG type GTY_T_SIM_MSG .
+  class-methods VALIDATE_DOCUMENT_TYPE
+    importing
+      !IT_BLART type GTY_T_BLART
+    changing
+      !CS_ACCOUNTGL type BAPIACGL09
+      !CT_SIM_MSG type GTY_T_SIM_MSG .
+  class-methods VALIDATE_REFERENCE_KEY
+    changing
+      !CS_ACCOUNTGL type BAPIACGL09
+      !CT_SIM_MSG type GTY_T_SIM_MSG .
+  class-methods VALIDATE_AMOUNT
+    importing
+      !IT_CURRENCY type BAPIACCR09_TAB
+    changing
+      !CT_SIM_MSG type GTY_T_SIM_MSG .
+  class-methods REFINE_ERROR_MESSSAGES
+    changing
+      !CT_SIM_MSG type GTY_T_SIM_MSG .
+  class-methods POPULATE_LOG_TABLE
+    importing
+      !IV_DEBIT type WRBTR
+      !IV_CREDIT type WRBTR
+      !IV_RET_DEBIT type WRBTR optional
+      !IV_RET_CREDIT type WRBTR optional
+      !IV_COUNTRY_KEY type LAND1_GP
+      !IV_CILL_ID type ZD_CILL_ID
+      !IT_MESSAGES type BAPIRET2_T
+    changing
+      !CV_SEQ type I
+      !CS_LOG_MSG type ZGLT_LOG_MSG
+      !CS_CILL_LOG type ZGLT_CILL_LOG
+      !CT_CILL_LOG type GTY_T_CILL_LOG
+      !CT_LOG_MSG type GTY_T_LOG_MSG
+      !CT_CILL_MSG type GTY_T_CILL_MSG .
+  class-methods UPDATE_LOG_TABLE_FLAGS
+    importing
+      !IV_DOCNUM type EDI_DOCNUM
+      !IV_CILL_ID type ZD_CILL_ID
+    changing
+      !CS_CILL_LOG type ZGLT_CILL_LOG
+      !CT_CILL_LOG type GTY_T_CILL_LOG .
+  class-methods PREPARE_CILL_RECON_TABLE
+    changing
+      !CT_CILL_LOG type GTY_T_LOG_TABLE
+      !CT_RECON_TAB type GTY_T_RECON
+      !CV_RECON_COUNTER type SY-TABIX optional .
+  class-methods SEND_EMAIL
+    importing
+      !IV_TOTAL_LINES type INT4
+      !IV_PROXY_COUNTER type INT4
+      !IV_COUNTRY type LAND1 optional
+    exporting
+      !EV_ERROR type CHAR1 .
+  class-methods VALIDATE_CUSTOMER_CC
+    changing
+      !CS_ACCOUNTGL type BAPIACGL09
+      !CT_SIM_MSG type GTY_T_SIM_MSG .
+  class-methods HANDLE_GENERIC_MESSAGES
+    changing
+      !CT_SIM_MSG type GTY_T_SIM_MSG
+      !CT_ACCOUNT_GL type BAPIACGL09_TAB .
+  class-methods GET_PARAMETER_VALUES
+    importing
+      !IS_ACCOUNT_GL type BAPIACGL09
+*      !IS_MSG_MAP type ZGLT_CILL_MSGMAP
+      !IS_INPUT_MSG type GTY_S_SIM_MESSAGES
+    returning
+      value(rv_SIM_MSG) type GTY_S_SIM_MESSAGES .
+ENDCLASS.
+
+
+
+CLASS ZFGLCL_I01418_CILL_POC IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>ADD_RESPONSE_TO_TABLE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_IDOC_DATA                   TYPE        EDIDD_TT(optional)
+* | [--->] IT_MESSAGES                    TYPE        BAPIRET2_T
+* | [--->] IS_EDIDC                       TYPE        EDIDC(optional)
+* | [<---] ET_RETURN                      TYPE        BAPIRET2_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD ADD_RESPONSE_TO_TABLE.
+************************************************************************
+*  Class           : ZFGLCL_CILL_OUT_INTF_I01418                       *
+*  Method          : ADD_RESPONSE_TO_TABLE                             *
+*  Object ID       : I01528/I01418                                     *
+*  Title           : Send outbound response to CILL                    *
+*  Author          : Mohammed Zakir                                    *
+*  Country         : Global                                            *
+*  Creation Date   : 25/06/2021                                        *
+*  Logical DB      : None                                              *
+*  Reference       : None                                              *
+*  Scheduling      : None                                              *
+*  Description     : Add the response of IDOC in the custom table      *
+*----------------------------------------------------------------------*
+* Modifications                                                        *
+*  User ID     Date        Request     Description                     *
+*  VN50SXA     09/07/2020  DR0K900310  Initial Development             *
+*  R0T04VR     22/11/2021  DF4K900265  CILL Recon changes (V3)
+* Add column Ack counter, recon compl. flag, latest flag and batch id
+* to table ZGLT_CILL_LOG and populate as per given FS
+* If amount > 0 then assign to debit and if amount < 0 assign to credit
+*
+* R0T04VR      10/01/2022  DF4K900265  1.2
+* Add retail amount from segment E1BPACGL09, field REF_KEY_3
+* Debit will be positive whereas Credi will be negative amount
+*
+* R0T04VR      25/02/2022  DF4K902168  1.3
+* Remove explicit COMMIT WORK statements so that document posting and  *
+* custom log table update could be in single LUW always
+************************************************************************
+    DATA : lv_count        TYPE i,
+           lv_debit        TYPE wrbtr,
+           lv_credit       TYPE wrbtr,
+           lv_ret_debit    TYPE wrbtr,
+           lv_ret_credit   TYPE wrbtr,
+           lv_amount       TYPE wrbtr,
+           lv_seq          TYPE i,
+           lv_ident        TYPE xref2_hd,
+           lv_header_text  TYPE char20,
+           ls_cill_log     TYPE zglt_cill_log,
+           ls_e1bpache09   TYPE e1bpache09,
+           ls_e1bpacpa09   TYPE e1bpacpa09,
+           ls_e1bpaccr09   TYPE e1bpaccr09,
+           ls_e1bpparex    TYPE e1bpparex,
+           ls_e1bpacgl09   TYPE e1bpacgl09,
+           ls_log_msg      TYPE zglt_log_msg,
+           lv_header_bukrs TYPE bukrs,
+           lt_log_msg      TYPE STANDARD TABLE OF zglt_log_msg,
+           lt_cill_log     TYPE STANDARD TABLE OF zglt_cill_log,
+           lt_cill_msg     TYPE STANDARD TABLE OF zglt_cill_msg,
+           lo_ref          TYPE REF TO data.
+
+    FIELD-SYMBOLS:
+      <lfs_struc> TYPE any,
+      <lfs_field> TYPE any,
+      <lfs_value> TYPE any.
+
+    CLEAR ls_cill_log.
+
+*------------------------------------------------------------------------------
+*Fetch the message id and number from the custom table
+*------------------------------------------------------------------------------
+    SELECT * FROM zglt_cill_msg                         "#EC CI_NOWHERE
+             INTO TABLE @lt_cill_msg. "#EC CI_PRIVACC
+    IF sy-subrc = 0.
+      SORT lt_cill_msg BY msg_id msg_number.
+    ENDIF.
+
+    ls_cill_log-interface_id = gc_interface.       "IO1418 Interface ID
+    ls_cill_log-idoc_no      = is_edidc-docnum.    "IDOC Number
+    ls_cill_log-process_area = gc_process_area.    "Process Area
+
+*------------------------------------------------------------------------------
+*Loop the idoc data and get the required fields from the respective segments
+*------------------------------------------------------------------------------
+    CLEAR: lv_count, lv_debit, lv_credit, lv_ret_debit, lv_ret_credit.
+    LOOP AT it_idoc_data INTO DATA(ls_idoc_data).
+      CASE ls_idoc_data-segnam.
+        WHEN gc_e1bpache09.             "Segment E1BPACHE09
+          ls_e1bpache09 = ls_idoc_data-sdata.
+          ls_cill_log-document_date = ls_e1bpache09-doc_date.
+          ls_cill_log-posting_date  = ls_e1bpache09-pstng_date.
+          lv_header_text            = ls_e1bpache09-header_txt.
+          lv_header_bukrs           = ls_e1bpache09-comp_code.
+        WHEN gc_e1bpacgl09.             "Segment E1BPACGL09
+          lv_count = lv_count + 1.      "count the number of line items
+
+*       Add retail debit and credit amount
+          ls_e1bpacgl09 = ls_idoc_data-sdata.
+          CLEAR lv_amount.
+          TRY.
+              lv_amount = ls_e1bpacgl09-ref_key_3.
+              IF lv_amount > 0.
+                lv_ret_debit = lv_ret_debit + lv_amount.
+              ELSE.
+                lv_ret_credit = lv_ret_credit + lv_amount.
+              ENDIF.
+            CATCH cx_root.
+              CLEAR lv_amount.
+          ENDTRY.                         "++ 1.2
+
+
+        WHEN gc_e1bpaccr09.             "Segment E1BPACCR09
+
+*       Add debit and credit amount
+          ls_e1bpaccr09 = ls_idoc_data-sdata.
+          TRY .
+              CLEAR lv_amount.
+              lv_amount = ls_e1bpaccr09-amt_doccur.
+              IF lv_amount > 0. "++V3
+                lv_debit = lv_debit + lv_amount.
+              ELSE.
+                lv_credit = lv_amount + lv_credit.
+              ENDIF.
+            CATCH cx_root.
+              CLEAR lv_amount.
+          ENDTRY.
+        WHEN gc_e1bpparex.              "Segment E1BPPAREX
+          ls_e1bpparex = ls_idoc_data-sdata.
+          CREATE DATA lo_ref TYPE (ls_e1bpparex-structure).
+          ASSIGN lo_ref->* TO <lfs_struc>.
+          MOVE ls_e1bpparex-valuepart1 TO <lfs_struc>.
+          ASSIGN COMPONENT 'POSNR' OF STRUCTURE <lfs_struc> TO <lfs_field>.
+          IF sy-subrc EQ 0 AND <lfs_field> IS NOT INITIAL.
+            IF <lfs_field> = '0000000001'.
+* Reference header 2
+              ASSIGN COMPONENT 'XREF2_HD' OF STRUCTURE <lfs_struc> TO <lfs_value>.
+              IF sy-subrc EQ 0 AND <lfs_value> IS NOT INITIAL.
+                lv_ident = <lfs_value>.
+                CLEAR : <lfs_value>.
+              ENDIF.
+            ENDIF.
+          ENDIF.
+          ls_cill_log-cill_id = lv_header_text && lv_ident.
+          DATA(lv_cill_id) = ls_cill_log-cill_id.    "CILL Unique Identifier
+        WHEN gc_e1bpacpa09.
+          ls_e1bpacpa09 = ls_idoc_data-sdata.
+          DATA(lv_country_key) = ls_e1bpacpa09-country.
+      ENDCASE.
+    ENDLOOP.
+
+    ls_cill_log-document_line_count = lv_count.
+    lv_seq = 1.
+
+*------------------------------------------------------------------------------
+* Validate whether the CILL number already exists in the custom table or not
+*------------------------------------------------------------------------------
+    SELECT SINGLE idoc_no, message_type, belnr FROM zglt_cill_log "#EC CI_PRIVACC
+                          INTO @DATA(ls_cill)
+                          WHERE cill_id = @lv_cill_id
+                          AND idoc_no = @is_edidc-docnum. "#EC CI_SUBRC
+    IF ls_cill-message_type EQ 'S' AND ls_cill-belnr IS NOT INITIAL.
+* If Idoc and CILL id aleady exists and document(BELNR) is posted successfully
+* then this record need to processed else it will cause duplicate idoc issue
+      EXIT.
+    ENDIF.
+
+    IF sy-subrc = 0.
+** If value exists then first delete the entry correspondin to that CILL ID in the table
+      DELETE FROM zglt_log_msg
+        WHERE cill_id = lv_cill_id
+        AND idoc_no = is_edidc-docnum.                    "#EC CI_SUBRC
+      IF sy-subrc = 0.
+*        COMMIT WORK. ++ 1.3
+      ENDIF.
+    ENDIF.
+
+*------------------------------------------------------------------------------
+* Populate the log tables LT_CILL_LOG, LT_LOG_MSG and LT_CILL_MSG
+*------------------------------------------------------------------------------
+    populate_log_table(
+      EXPORTING
+        iv_debit       = lv_debit
+        iv_credit      = lv_credit
+        iv_ret_debit   = lv_ret_debit
+        iv_ret_credit  = lv_ret_credit
+        iv_country_key = lv_country_key
+        iv_cill_id     = lv_cill_id
+        it_messages    = it_messages
+      CHANGING
+        cv_seq         = lv_seq
+        cs_log_msg     = ls_log_msg
+        cs_cill_log    = ls_cill_log
+        ct_cill_log    = lt_cill_log
+        ct_log_msg     = lt_log_msg
+        ct_cill_msg    = lt_cill_msg
+    ).
+
+*------------------------------------------------------------------------------
+* Update the custom log table
+*------------------------------------------------------------------------------
+    IF lt_cill_log IS NOT INITIAL.
+      MODIFY zglt_cill_log FROM TABLE lt_cill_log.
+      IF sy-subrc = 0.
+        MODIFY zglt_log_msg FROM TABLE lt_log_msg.
+        IF sy-subrc = 0.
+          COMMIT WORK.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+
+* Release the CILL ID lock object
+    dequeue_cill_table(
+      EXPORTING
+        iv_cillid    = ls_cill_log-cill_id
+        iv_lock_mode = 'E'
+    ).  "++r0t04vr
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>DEQUEUE_CILL_TABLE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_CILLID                      TYPE        ZD_CILL_ID
+* | [--->] IV_LOCK_MODE                   TYPE        CHAR1
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD DEQUEUE_CILL_TABLE.
+    CALL FUNCTION 'DEQUEUE_EZCILLID'
+      EXPORTING
+        mode_zglt_cill_log = iv_lock_mode
+        mandt              = sy-mandt
+        cill_id            = iv_cillid
+        x_cill_id          = ' '
+        _scope             = '3'
+        _synchron          = ' '
+        _collect           = ' '.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>ENQUEUE_CILL_TABLE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_CILLID                      TYPE        ZD_CILL_ID
+* | [--->] IV_LOCK_MODE                   TYPE        CHAR1 (default ='E')
+* | [--->] IV_WAIT_TILL                   TYPE        SY-TABIX (default ='3')
+* | [<---] EV_TIMEUP                      TYPE        CHAR1
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD ENQUEUE_CILL_TABLE.
+*----------------------------------------------------------------------*
+* Modifications                                                        *
+*  User ID     Date        Request     Description                     *
+*  A0T00IH     17/05/2023  DF4K906404  INC34874804 - Duplicate posting *
+*                                     in S/4 for I0089 BUA Transactions*
+*                                                                      *
+************************************************************************
+*Check if lock is already set for CILL ID. if yes it implies the same CILL ID is already in process
+* Thus wait until the earlier CILL ID record gets processed. It helps reading consistent data
+* from posting table BKPF and avoid duplicate posting
+* Dequeue method is called in the method ADD_RESPONSE_TO_TABLE after CILL Log table
+
+    DATA: lr_garg    TYPE RANGE OF seqg3-garg,
+          lt_enqueue TYPE STANDARD TABLE OF seqg3,
+          lv_timeup  TYPE c.
+
+    CONSTANTS: lc_gname TYPE seqg3-gname VALUE 'ZGLT_CILL_LOG'.
+
+    lr_garg = VALUE #( sign = 'I' option = 'CP' ( low = |*{ iv_cillid }*| ) ).
+
+    CALL FUNCTION 'ENQUEUE_READ'
+      EXPORTING
+        gclient               = sy-mandt
+        gname                 = lc_gname
+        garg                  = ' '
+*       guname                = sy-uname
+      TABLES
+        enq                   = lt_enqueue
+      EXCEPTIONS
+        communication_failure = 1
+        system_failure        = 2
+        OTHERS                = 3.
+    IF sy-subrc = 0.
+* If lock avaialble for current CILL ID; wait for until it releases the lock
+      LOOP AT lt_enqueue INTO DATA(ls_enqueue) WHERE gname EQ lc_gname AND garg IN lr_garg.
+        EXIT.
+      ENDLOOP.
+
+
+      IF sy-subrc EQ 0.
+* If lock is found, wait until it releases or try 3 times and then the time gets up
+        lv_timeup = abap_true.
+        DO 3 TIMES.
+          CALL FUNCTION 'ENQUEUE_READ'
+            EXPORTING
+              gclient               = sy-mandt
+              gname                 = lc_gname
+              garg                  = ' '
+              guname                = sy-uname
+*             LOCAL                 = ' '
+*             FAST                  = ' '
+*             GARGNOWC              = ' '
+*          IMPORTING
+*             number                = lv_tabix
+*             subrc                 = lv_subrc
+            TABLES
+              enq                   = lt_enqueue
+            EXCEPTIONS
+              communication_failure = 1
+              system_failure        = 2
+              OTHERS                = 3.  "#EC CI_SUBRC
+          LOOP AT lt_enqueue INTO ls_enqueue WHERE gname EQ lc_gname AND garg IN lr_garg.
+            EXIT.
+          ENDLOOP.
+
+          IF sy-subrc EQ 0.
+            WAIT UP TO iv_wait_till SECONDS.
+          ELSE.
+            CLEAR lv_timeup.
+            EXIT.
+          ENDIF.
+        ENDDO.
+
+      ELSEIF sy-subrc NE 0.
+
+* Set the lock of current CILL ID, if already not available
+        lv_timeup = abap_true.                                      "A0T00IH++
+        DO 3 TIMES.                                                 "A0T00IH++
+          CALL FUNCTION 'ENQUEUE_EZCILLID'
+            EXPORTING
+              mode_zglt_cill_log = 'E'
+              mandt              = sy-mandt
+              cill_id            = iv_cillid
+              x_cill_id          = ' '
+              _scope             = '2'
+              _wait              = ' '
+              _collect           = ' '
+            EXCEPTIONS
+              foreign_lock       = 1
+              system_failure     = 2
+              OTHERS             = 3. "#EC CI_SUBRC
+
+*{Begin of change A0T00IH++   DF4K906404
+          IF sy-subrc NE 0.
+            WAIT UP TO iv_wait_till SECONDS.
+          ELSE.
+            CLEAR lv_timeup.
+            EXIT.
+          ENDIF.
+        ENDDO.
+*}End of change A0T00IH++    DF4K906404
+
+
+      ENDIF.
+
+    ENDIF.
+
+    ev_timeup = lv_timeup.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>GET_PARAMETER_VALUES
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IS_ACCOUNT_GL                  TYPE        BAPIACGL09
+* | [--->] IS_INPUT_MSG                   TYPE        GTY_S_SIM_MESSAGES
+* | [<-()] RV_SIM_MSG                     TYPE        GTY_S_SIM_MESSAGES
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD GET_PARAMETER_VALUES.
+
+*    DATA:
+*      lv_hkont  TYPE hkont,
+*      lv_value1 TYPE char50,
+*      lv_value2 TYPE char50,
+*      lv_value3 TYPE char50,
+*      lv_value4 TYPE char50.
+**  get the parameters values.
+*    IF is_msg_map-parameter1 IS NOT INITIAL.
+*
+*      ASSIGN COMPONENT is_msg_map-parameter1 OF STRUCTURE is_account_gl TO FIELD-SYMBOL(<lfs_field_value1>).
+*
+*      lv_value1 = COND #( WHEN <lfs_field_value1> IS ASSIGNED THEN <lfs_field_value1> ) .
+*
+*      lv_hkont  = COND #( WHEN is_msg_map-parameter1 = |GL_ACCOUNT| THEN <lfs_field_value1> ).
+*
+*      IF lv_hkont IS NOT INITIAL.
+*
+*        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+*          EXPORTING
+*            input  = lv_hkont
+*          IMPORTING
+*            output = lv_hkont.
+*
+*        lv_value1 = lv_hkont.
+*      ENDIF.
+*    ENDIF.
+*
+*    CLEAR: lv_hkont.
+*
+*    IF is_msg_map-parameter2 IS NOT INITIAL.
+*
+*      ASSIGN COMPONENT is_msg_map-parameter2 OF STRUCTURE is_account_gl TO FIELD-SYMBOL(<lfs_field_value2>).
+*
+*      lv_value2 = COND #( WHEN <lfs_field_value2> IS ASSIGNED THEN <lfs_field_value2> ) .
+*
+*      lv_hkont  = COND #( WHEN is_msg_map-parameter2 = |GL_ACCOUNT| THEN <lfs_field_value2> ).
+*
+*      IF lv_hkont IS NOT INITIAL.
+*
+*        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+*          EXPORTING
+*            input  = lv_hkont
+*          IMPORTING
+*            output = lv_hkont.
+*
+*        lv_value2 = lv_hkont.
+*      ENDIF.
+*    ENDIF.
+*
+*    CLEAR: lv_hkont.
+*
+*    IF is_msg_map-parameter3 IS NOT INITIAL.
+*      ASSIGN COMPONENT is_msg_map-parameter3 OF STRUCTURE is_account_gl TO FIELD-SYMBOL(<lfs_field_value3>).
+*
+*      lv_value3 = COND #( WHEN <lfs_field_value3> IS ASSIGNED THEN <lfs_field_value3> ) .
+*
+*      lv_hkont  = COND #( WHEN is_msg_map-parameter3 = |GL_ACCOUNT| THEN <lfs_field_value3> ).
+*
+*      IF lv_hkont IS NOT INITIAL.
+*
+*        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+*          EXPORTING
+*            input  = lv_hkont
+*          IMPORTING
+*            output = lv_hkont.
+*
+*        lv_value3 = lv_hkont.
+*      ENDIF.
+*    ENDIF.
+*
+*    CLEAR: lv_hkont.
+*
+*    IF is_msg_map-parameter4 IS NOT INITIAL.
+*
+*      ASSIGN COMPONENT is_msg_map-parameter4 OF STRUCTURE is_account_gl TO FIELD-SYMBOL(<lfs_field_value4>).
+*
+*      lv_value4 = COND #( WHEN <lfs_field_value4> IS ASSIGNED THEN <lfs_field_value4> ) .
+*
+*      lv_hkont  =  COND #( WHEN is_msg_map-parameter4 = |GL_ACCOUNT| THEN <lfs_field_value4>  ).
+*
+*      IF lv_hkont IS NOT INITIAL.
+*
+*        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+*          EXPORTING
+*            input  = lv_hkont
+*          IMPORTING
+*            output = lv_hkont.
+*
+*        lv_value4 = lv_hkont.
+*      ENDIF.
+*    ENDIF.
+*
+*
+** If the paramter values and the message values are matched,
+*    IF is_input_msg-message_v1 = lv_value1 AND
+*       is_input_msg-message_v2 = lv_value2 AND
+*       is_input_msg-message_v3 = lv_value3 AND
+*       is_input_msg-message_v4 = lv_value4.
+*
+*      rv_sim_msg = CORRESPONDING #( is_input_msg ).
+*      rv_sim_msg-row = is_account_gl-itemno_acc.
+*
+*    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>GET_VALIDATION
+* +-------------------------------------------------------------------------------------------------+
+* | [<---] ET_BUKRS                       TYPE        GTY_T_BUKRS
+* | [<---] ET_BLART                       TYPE        GTY_T_BLART
+* | [<---] ET_T004F                       TYPE        GTY_T_T004F
+* | [<---] ET_TGSB                        TYPE        GTY_T_GSBER
+* | [<---] ET_SKB1                        TYPE        GTY_T_SKB1
+* | [<---] ET_PRCTR                       TYPE        GTY_T_PRCTR
+* | [<---] ET_COSTCENTER                  TYPE        GTY_T_COSTCENTER
+* | [<-->] CT_ACCOUNTGL                   TYPE        GTY_T_BAPIACGL09
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD GET_VALIDATION.
+    DATA: lt_skb1          TYPE gty_t_skb1,
+          lt_accountgl_cc  TYPE SORTED TABLE OF bapiacgl09 WITH NON-UNIQUE KEY comp_code,
+          lt_accountgl_dt  TYPE SORTED TABLE OF bapiacgl09 WITH NON-UNIQUE KEY doc_type,
+          lt_accountgl_gl  TYPE SORTED TABLE OF bapiacgl09 WITH NON-UNIQUE KEY gl_account comp_code,
+          lt_accountgl_ba  TYPE SORTED TABLE OF bapiacgl09 WITH NON-UNIQUE KEY bus_area,
+          lt_accountgl_pc  TYPE SORTED TABLE OF bapiacgl09 WITH NON-UNIQUE KEY profit_ctr,
+          lt_accountgl_cc1 TYPE SORTED TABLE OF bapiacgl09 WITH NON-UNIQUE KEY costcenter,
+          lv_dummy         TYPE c.
+
+    lt_accountgl_cc[] = lt_accountgl_dt[] = lt_accountgl_ba[] = lt_accountgl_gl[] =  lt_accountgl_pc[] = lt_accountgl_cc1[] = ct_accountgl[].
+    DELETE ADJACENT DUPLICATES FROM lt_accountgl_cc COMPARING comp_code.
+    DELETE ADJACENT DUPLICATES FROM lt_accountgl_dt COMPARING doc_type.
+*    DELETE ADJACENT DUPLICATES FROM lt_accountgl_gl COMPARING gl_account.
+    DELETE ADJACENT DUPLICATES FROM lt_accountgl_gl COMPARING gl_account comp_code. " Added Company code | S0G00S3 | FINTWO-39144
+    DELETE ADJACENT DUPLICATES FROM lt_accountgl_ba COMPARING bus_area.
+    DELETE ADJACENT DUPLICATES FROM lt_accountgl_pc COMPARING profit_ctr.
+    DELETE ADJACENT DUPLICATES FROM lt_accountgl_cc1 COMPARING costcenter.
+
+
+
+
+* Fetch Company Code
+    IF NOT lt_accountgl_cc IS INITIAL.
+      SELECT bukrs FROM t001                            "#EC CI_PRIVACC
+                 FOR ALL ENTRIES IN @lt_accountgl_cc
+                 WHERE bukrs EQ @lt_accountgl_cc-comp_code
+                 INTO TABLE @et_bukrs.
+      IF sy-subrc = 0.
+        lv_dummy = abap_true.
+      ENDIF.
+    ENDIF.
+
+* Fetch Document Type.
+    IF NOT lt_accountgl_dt IS INITIAL.
+      SELECT blart FROM t003
+           FOR ALL ENTRIES IN @lt_accountgl_dt
+           WHERE blart EQ @lt_accountgl_dt-doc_type
+           INTO TABLE @et_blart.                        "#EC CI_PRIVACC
+      IF sy-subrc = 0.
+        lv_dummy = abap_true.
+      ENDIF.
+    ENDIF.
+
+* Fetch field status group
+    IF NOT lt_accountgl_gl IS INITIAL.
+
+      SELECT bukrs, saknr, fstag FROM skb1            "#EC CI_SGLSELECT
+        FOR ALL ENTRIES IN @lt_accountgl_gl
+*        WHERE saknr = @lt_accountgl_gl-gl_account       "#EC CI_PRIVACC
+        WHERE bukrs = @lt_accountgl_gl-comp_code "#EC CI_PRIVACC            " Added Company code | S0G00S3 | FINTWO-39144
+        AND   saknr = @lt_accountgl_gl-gl_account       "#EC CI_PRIVACC
+        INTO TABLE @et_skb1.
+      IF sy-subrc = 0 AND NOT et_skb1[] IS INITIAL.
+        SELECT fstag, faus1 FROM t004f                  "#EC CI_GENBUFF
+          FOR ALL ENTRIES IN @et_skb1                   "#EC CI_PRIVACC
+          WHERE fstag = @et_skb1-fstag
+          INTO TABLE @et_t004f.                    "#EC CI_NO_TRANSFORM
+        IF sy-subrc = 0.
+          lv_dummy = abap_true.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+*Begin of change by R0T04VR
+* Get the Business area reference table values
+    IF lt_accountgl_ba[] IS NOT INITIAL.
+      SELECT gsber FROM tgsb                            "#EC CI_PRIVACC
+        FOR ALL ENTRIES IN @lt_accountgl_ba
+        WHERE gsber EQ @lt_accountgl_ba-bus_area
+        ORDER BY PRIMARY KEY
+        INTO TABLE @et_tgsb.                              "#EC CI_SUBRC
+    ENDIF.
+
+* Get the profit center
+    IF lt_accountgl_pc IS NOT INITIAL.
+      SELECT prctr, datbi, kokrs FROM cepc              "#EC CI_PRIVACC
+        FOR ALL ENTRIES IN @lt_accountgl_pc
+        WHERE prctr EQ @lt_accountgl_pc-profit_ctr
+        ORDER BY PRIMARY KEY
+        INTO TABLE @et_prctr.                             "#EC CI_SUBRC
+    ENDIF.
+
+* Get the cost center
+    IF lt_accountgl_cc1 IS NOT INITIAL.
+      SELECT kokrs, kostl, datbi FROM csks              "#EC CI_GENBUFF
+        FOR ALL ENTRIES IN @lt_accountgl_cc1            "#EC CI_PRIVACC
+        WHERE kostl EQ @lt_accountgl_cc1-costcenter
+        ORDER BY PRIMARY KEY
+        INTO TABLE @et_costcenter.                        "#EC CI_SUBRC
+    ENDIF.
+
+* Clear objects
+    CLEAR: lt_accountgl_cc[], lt_accountgl_dt[], lt_accountgl_gl[],
+           lt_accountgl_ba[], lt_accountgl_pc[], lt_accountgl_cc1[].
+
+*end of change by R0T04VR
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>HANDLE_GENERIC_MESSAGES
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* | [<-->] CT_ACCOUNT_GL                  TYPE        BAPIACGL09_TAB
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD HANDLE_GENERIC_MESSAGES.
+
+*    DATA lt_tmp_act TYPE gty_t_sim_msg.
+*    DATA lt_tmp_msg_map TYPE gty_t_sim_msg.
+*    DATA lt_tmp TYPE gty_t_sim_msg.
+*    DATA lt_account_gl TYPE STANDARD TABLE OF bapiacgl09.
+*
+*    FIELD-SYMBOLS: <lfs_field_value> TYPE any.
+***------------------------------------------------------------------------------
+*
+*    SELECT * FROM zglt_cill_msgmap INTO TABLE @DATA(lt_msg_map) ORDER BY msg_id, msg_number. "#EC CI_NOWHERE
+*
+*    IF sy-subrc NE 0.
+*      RETURN.
+*    ENDIF.
+*
+** Filter only the unmapped messages which are configured in the message mapping table
+*    lt_tmp = VALUE #( FOR ls_sim_msg IN ct_sim_msg WHERE ( row IS INITIAL )
+*                      FOR ls_map  IN lt_msg_map WHERE ( msg_id     EQ ls_sim_msg-id AND
+*                                                        msg_number EQ ls_sim_msg-number )
+*                                     ( CORRESPONDING #( ls_sim_msg ) ) ) .
+*
+*
+** Keep only the unique messages comparing with the parameters making sure no duplicates exists.
+*    lt_tmp_msg_map = VALUE #( FOR GROUPS lv_unique OF ls_tmp_msg_map IN lt_tmp GROUP BY (  id = ls_tmp_msg_map-id
+*                                                                                           number = ls_tmp_msg_map-number
+*                                                                                           message_v1 = ls_tmp_msg_map-message_v1
+*                                                                                           message_v2 = ls_tmp_msg_map-message_v2
+*                                                                                           message_v3 = ls_tmp_msg_map-message_v3
+*                                                                                           message_v4 = ls_tmp_msg_map-message_v4 )
+*                                  WITHOUT MEMBERS
+*                                  ( CORRESPONDING #( lv_unique ) ) ).
+*
+*    IF lt_tmp_msg_map IS INITIAL.
+*      RETURN.
+*    ENDIF.
+*
+**   Deleting the messages which are not yet mapped. Assuming all the unmapped messages will be mapped in the further logic when the msg is configured properly.
+*    lt_tmp_act = VALUE #( FOR ls_sim_msg IN ct_sim_msg
+*                           ( COND #( WHEN NOT line_exists( lt_tmp_msg_map[ id = ls_sim_msg-id number = ls_sim_msg-number
+*                                                                           message_v1 = ls_sim_msg-message_v1
+*                                                                           message_v2 = ls_sim_msg-message_v2
+*                                                                           message_v3 = ls_sim_msg-message_v3
+*                                                                           message_v4 = ls_sim_msg-message_v4 ] )
+*                            THEN  CORRESPONDING #( ls_sim_msg ) ) ) ).
+*
+*    DELETE lt_tmp_act WHERE table_line IS INITIAL.
+*    ct_sim_msg = lt_tmp_act.
+*
+** process each message.
+*    LOOP AT lt_tmp_msg_map ASSIGNING FIELD-SYMBOL(<lfs_msg_map>).
+*
+*      READ TABLE lt_msg_map WITH KEY msg_id     = <lfs_msg_map>-id        "Change to loop
+*                                     msg_number = <lfs_msg_map>-number
+*                               INTO DATA(ls_msg_map) BINARY SEARCH.
+*
+*      IF sy-subrc NE 0. "sy-subrc will be always zero
+*        CONTINUE.
+*      ENDIF.
+*
+*      ct_sim_msg = VALUE #( BASE ct_sim_msg FOR ls_account_gl IN ct_account_gl
+*                                   LET ls_get_msg = get_parameter_values( is_input_msg  = <lfs_msg_map>
+*                                                                          is_account_gl = ls_account_gl
+*                                                                          is_msg_map    = ls_msg_map ) IN
+** Do not populate if the same message is already populated for the same row in the previous logics
+*                                   (  COND #( WHEN ls_get_msg-row IS NOT INITIAL AND NOT line_exists( ct_sim_msg[ id          = ls_get_msg-id
+*                                                                                                                   number     = ls_get_msg-number
+*                                                                                                                   message_v1 = ls_get_msg-message_v1
+*                                                                                                                   message_v2 = ls_get_msg-message_v2
+*                                                                                                                   message_v3 = ls_get_msg-message_v3
+*                                                                                                                   message_v4 = ls_get_msg-message_v4
+*                                                                                                                   row        = ls_get_msg-row ] ) " important
+*                                      THEN CORRESPONDING #( ls_get_msg ) ) ) ) .
+*
+*    ENDLOOP.
+*
+*    DELETE ct_sim_msg WHERE table_line IS INITIAL.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>I01528_SEND_RECON
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_FLAG                        TYPE        CHAR1(optional)
+* | [--->] IV_COUNTRY                     TYPE        LAND1(optional)
+* | [<-->] CT_TABLE                       TYPE        GTY_T_RECON(optional)
+* | [<-->] CT_CILL_LOG                    TYPE        GTY_T_LOG_TABLE(optional)
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD I01528_SEND_RECON.
+************************************************************************
+*  Class           : ZFGLCL_CILL_OUT_INTF_I01418                       *
+*  Method          : I01528_SEND_RECON                                 *
+*  Object ID       : I01528/I01418                                     *
+*  Title           : Outbound Recon Response                           *
+*  Author          : Saurabh Gupta                                     *
+*  Country         : Global                                            *
+*  Creation Date   : 29/06/2021                                        *
+*  Logical DB      : None                                              *
+*  Reference       : None                                              *
+*  Scheduling      : None                                              *
+*  Description     : Send the RECON response to CILL using I01418      *
+*                    Outbound proxy                                    *
+*----------------------------------------------------------------------*
+* Modifications                                                        *
+*  User ID    Date        Request     Description                      *
+*  R0T04VR    22/11/2021  DF4K900265  CILL Recon changes               *
+* Update recon flag for each record being sent to CILL for             *
+* reconciliation. Similar changes are made for acknowledement sending  *
+* R0T04VR     10/01/2022  DF4K900265  send Retail debit and credit amt *
+************************************************************************
+
+    DATA : ls_cill_aif      TYPE zgls_cill_aif,
+           ls_log_out       TYPE zgls_cill_log,
+           lv_count         TYPE i,
+           lv_count_proxy   TYPE i,
+           lv_proxy_count   TYPE i,
+           lv_lines         TYPE i,
+           lv_tabix         TYPE sy-tabix,
+           lv_line_char     TYPE char10,
+           lt_value         TYPE abap_parmbind_tab,
+           lt_data_tab      TYPE STANDARD TABLE OF gty_s_data_tab,
+           lt_return        TYPE bapiret2_t,
+           lt_cill_log_aif  TYPE zgltt_cill_log,
+           lt_recon_tab     TYPE gty_t_recon,
+           lv_recon_counter TYPE sy-tabix. "r0t04vr
+
+    CONSTANTS: lc_proxy_count TYPE i VALUE 950,
+               lc_rec         TYPE c VALUE 'R'.
+
+    IF ct_cill_log IS NOT INITIAL.
+*------------------------------------------------------------------------------
+**- Fetch The Constants From BRF+
+*------------------------------------------------------------------------------
+      TRY.
+          CALL METHOD zzxxcl_common_utility=>execute_brf_function
+            EXPORTING
+              iv_function_id = gc_func_id           " BRF+ Function ID
+            IMPORTING
+              ev_result      = DATA(lo_result)
+            CHANGING
+              ct_name_value  = lt_value.
+        CATCH cx_fdt.
+*        Error
+      ENDTRY.
+
+      ASSIGN lo_result->* TO FIELD-SYMBOL(<lfs_result>).
+      IF <lfs_result> IS ASSIGNED.
+        lt_data_tab = <lfs_result>.
+      ENDIF.
+
+**- If Number Of Records To Be Sent In One Proxy Message Is Not Maiintained in BRF+, Use Static Number
+      lv_proxy_count = COND #( WHEN line_exists( lt_data_tab[ iv_input = gc_idoc_count ] )
+                                THEN lt_data_tab[ iv_input = gc_idoc_count ]-ev_output
+                                ELSE lc_proxy_count ).
+
+*------------------------------------------------------------------------------
+* Update the recon flag for reconciled records
+*------------------------------------------------------------------------------
+      CLEAR: lt_recon_tab[], lv_recon_counter.
+      prepare_cill_recon_table(
+        CHANGING
+          ct_cill_log = ct_cill_log
+          ct_recon_tab = lt_recon_tab
+          cv_recon_counter = lv_recon_counter
+      ).  "r0t04vr
+
+*------------------------------------------------------------------------------
+**- Map The Data Fetched Form Custom Table Into Outbound Proxy Structure
+*------------------------------------------------------------------------------
+      send_recon_proxy(
+        EXPORTING
+          iv_proxy_type      = 'R'
+          iv_proxy_per_batch = lv_proxy_count
+          iv_country         = iv_country
+        CHANGING
+          ct_table           = lt_recon_tab
+          cv_count_proxy     = lv_count_proxy
+          cv_total_lines     = lv_lines
+          ct_return          = lt_return
+      ).
+
+    ENDIF.  "CT_CILL_LOG
+
+*------------------------------------------------------------------------------
+**- Display The Messages
+*------------------------------------------------------------------------------
+    MESSAGE |No of records processed for Recon: { lv_recon_counter }| TYPE 'I'.
+
+    lv_line_char =  lv_lines.
+    CONDENSE lv_line_char.
+    WRITE :/ TEXT-t08, lv_line_char.
+    lv_line_char =  lv_count_proxy.
+    CONDENSE lv_line_char.
+    WRITE :/ TEXT-t05, lv_line_char.
+
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>POPULATE_LOG_TABLE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DEBIT                       TYPE        WRBTR
+* | [--->] IV_CREDIT                      TYPE        WRBTR
+* | [--->] IV_RET_DEBIT                   TYPE        WRBTR(optional)
+* | [--->] IV_RET_CREDIT                  TYPE        WRBTR(optional)
+* | [--->] IV_COUNTRY_KEY                 TYPE        LAND1_GP
+* | [--->] IV_CILL_ID                     TYPE        ZD_CILL_ID
+* | [--->] IT_MESSAGES                    TYPE        BAPIRET2_T
+* | [<-->] CV_SEQ                         TYPE        I
+* | [<-->] CS_LOG_MSG                     TYPE        ZGLT_LOG_MSG
+* | [<-->] CS_CILL_LOG                    TYPE        ZGLT_CILL_LOG
+* | [<-->] CT_CILL_LOG                    TYPE        GTY_T_CILL_LOG
+* | [<-->] CT_LOG_MSG                     TYPE        GTY_T_LOG_MSG
+* | [<-->] CT_CILL_MSG                    TYPE        GTY_T_CILL_MSG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD POPULATE_LOG_TABLE.
+
+    READ TABLE it_messages TRANSPORTING NO FIELDS WITH KEY type = gc_e.
+    IF sy-subrc = 0.                                          "IDOC is in error state
+
+      cs_cill_log-retail_debit_amount  = iv_ret_debit.
+      cs_cill_log-retail_credit_amount = iv_ret_credit.
+      cs_cill_log-message_type      = gc_e.                     "Error
+      cs_cill_log-debit             = iv_debit.
+      cs_cill_log-credit            = iv_credit.
+      cs_cill_log-country_key       = iv_country_key.
+
+
+      DESCRIBE TABLE it_messages LINES DATA(lv_lines).
+      LOOP AT it_messages INTO DATA(ls_messages) WHERE type = gc_e.
+*------------------------------------------------------------------------------
+* Check if message number and id is maintained in cutom table or not. If yes,
+* then sent retrigger message as 'X'.
+*------------------------------------------------------------------------------
+*Commented as per defect#FMTWO-76641 - Generic message RW-609 to be send as Error code 002
+*        IF ( ls_messages-id NE gc_rw OR ls_messages-number NE gc_609 ). "++changes from AND to OR as its negation statement
+*End of comments as per defect# FMTWO-76641
+          READ TABLE ct_cill_msg INTO DATA(ls_cill_msg) WITH KEY msg_id = ls_messages-id
+                     msg_number = ls_messages-number BINARY SEARCH.
+          IF sy-subrc NE 0.
+            cs_cill_log-retrigger_message = abap_true.           "Retrigger message
+          ELSE.
+            IF ls_cill_msg-send_to_cill IS INITIAL.              "If send to cill is not set then dont send the message to CILL
+              CONTINUE.
+            ENDIF.
+          ENDIF.
+
+* If message type = RW and number = 609 and it is an only error message
+*        ELSE. "error code "Commented as part of defect FMTWO-76641
+          IF lv_lines EQ 1.
+            cs_cill_log-retrigger_message = abap_true.           "Retrigger message
+
+          ENDIF.
+*        ENDIF."Commented as part of defect FMTWO-76641
+
+        IF ls_cill_msg-retrigger_message IS NOT INITIAL.
+          cs_cill_log-retrigger_message = abap_true.         "Retrigger message
+        ENDIF.
+
+        IF ls_cill_msg-error_code IS NOT INITIAL.
+          cs_log_msg-error_code   = ls_cill_msg-error_code.                        "Error Code
+          cs_log_msg-error_code_desc = ls_cill_msg-error_code_desc.              "Error Description
+        ELSE.
+          cs_log_msg-error_code   = gc_04.                                         "Error Code
+          cs_log_msg-error_code_desc = TEXT-t06.                                 "Error Description
+        ENDIF.
+
+* ++begin R0T04VR
+        cs_log_msg-message_id     = ls_messages-id.
+        cs_log_msg-message_no     = ls_messages-number.
+* ++end R0T04VR
+*
+        cs_log_msg-idoc_no        = cs_cill_log-idoc_no. "is_edidc-docnum.                                   "CILL Id
+        cs_log_msg-interface_id   = gc_interface.                                 "IO1418 Interface ID
+        cs_log_msg-seq_num        = cv_seq.                                            "sequence number
+        cv_seq                    = cv_seq + 1.
+        cs_log_msg-sap_message    = ls_messages-message.                         "Error message
+        cs_log_msg-line_item      = ls_messages-row.
+        cs_log_msg-cill_id        = iv_cill_id.                                    "Cill Id
+        cs_log_msg-country_key    = iv_country_key.                                    "Cill Id
+
+        IF ls_messages-message IS INITIAL.
+          CALL FUNCTION 'FORMAT_MESSAGE'
+            EXPORTING
+              id        = ls_messages-id
+              no        = ls_messages-number
+              v1        = ls_messages-message_v1
+              v2        = ls_messages-message_v2
+              v3        = ls_messages-message_v3
+              v4        = ls_messages-message_v4
+            IMPORTING
+              msg       = cs_log_msg-sap_message
+            EXCEPTIONS
+              not_found = 1
+              OTHERS    = 2.
+          IF sy-subrc <> 0.
+            CLEAR cs_log_msg-sap_message.
+          ENDIF.
+        ENDIF.
+*------------------------------------------------------------------------------
+*       Add the record
+*------------------------------------------------------------------------------
+        APPEND cs_log_msg TO ct_log_msg.
+        CLEAR: cs_log_msg, ls_cill_msg.
+      ENDLOOP.  "it_messages
+
+    ELSE.
+*------------------------------------------------------------------------------
+* IDOC is successful
+*------------------------------------------------------------------------------
+      cs_log_msg-idoc_no          = cs_cill_log-idoc_no. "is_edidc-docnum. "IDOC Number
+      cs_log_msg-interface_id     = gc_interface.                          "IO1418 Interface ID
+      cs_log_msg-cill_id          = iv_cill_id.                            "Cill Id
+      cs_cill_log-country_key     = cs_log_msg-country_key = iv_country_key.
+
+      READ TABLE it_messages INTO ls_messages WITH KEY type = gc_s.
+      IF sy-subrc = 0.
+* ++begin R0T04VR
+        cs_log_msg-message_id = ls_messages-id.
+        cs_log_msg-message_no = ls_messages-number.
+* ++end R0T04VR
+        cs_log_msg-sap_message = ls_messages-message.         "Success message
+
+        IF ls_messages-message IS INITIAL.
+          CALL FUNCTION 'FORMAT_MESSAGE'
+            EXPORTING
+              id        = ls_messages-id
+              no        = ls_messages-number
+              v1        = ls_messages-message_v1
+              v2        = ls_messages-message_v2
+              v3        = ls_messages-message_v3
+              v4        = ls_messages-message_v4
+            IMPORTING
+              msg       = cs_log_msg-sap_message
+            EXCEPTIONS
+              not_found = 1
+              OTHERS    = 2.
+          IF sy-subrc <> 0.
+            CLEAR cs_log_msg-sap_message.
+          ENDIF.
+        ENDIF.
+
+        cs_cill_log-belnr = ls_messages-message_v2+0(10).     "Document Number
+        cs_cill_log-bukrs = ls_messages-message_v2+10(4).     "Company Code
+        cs_cill_log-gjahr = ls_messages-message_v2+14(4).     "Fiscal Year
+      ENDIF.
+*
+      IF NOT cs_cill_log-belnr IS INITIAL.
+        cs_cill_log-message_type = gc_s.
+      ELSE.
+        cs_cill_log-message_type = gc_e.
+      ENDIF.
+
+      cs_cill_log-debit             = iv_debit.
+      cs_cill_log-credit            = iv_credit.
+      cs_cill_log-retail_debit_amount  = iv_ret_debit.
+      cs_cill_log-retail_credit_amount = iv_ret_credit.
+      cs_log_msg-seq_num            = cv_seq.                      "Sequence number
+
+*------------------------------------------------------------------------------
+*     Add the record
+*------------------------------------------------------------------------------
+      APPEND cs_log_msg TO ct_log_msg.
+      CLEAR cs_log_msg.
+    ENDIF.  "IT_MESSAGES
+
+*------------------------------------------------------------------------------
+* Update the newly added fields
+* If record already exists for CILL ID and IDOC number, update the fields accordingly
+*------------------------------------------------------------------------------
+    update_log_table_flags(
+      EXPORTING
+        iv_docnum   = CONV #( cs_cill_log-idoc_no )
+        iv_cill_id  = iv_cill_id
+      CHANGING
+        cs_cill_log = cs_cill_log
+        ct_cill_log = ct_cill_log
+    ).
+
+* Add the record
+    READ TABLE ct_cill_log ASSIGNING FIELD-SYMBOL(<lfs_cill_log>)
+      WITH KEY country_key = cs_cill_log-country_key
+               idoc_no = cs_cill_log-idoc_no
+               cill_id = cs_cill_log-cill_id
+               interface_id = cs_cill_log-interface_id.
+    IF <lfs_cill_log> IS ASSIGNED.
+      <lfs_cill_log> = cs_cill_log.
+    ELSE.
+      APPEND cs_cill_log TO ct_cill_log.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>PREPARE_CILL_RECON_TABLE
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] CT_CILL_LOG                    TYPE        GTY_T_LOG_TABLE
+* | [<-->] CT_RECON_TAB                   TYPE        GTY_T_RECON
+* | [<-->] CV_RECON_COUNTER               TYPE        SY-TABIX(optional)
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD PREPARE_CILL_RECON_TABLE.
+    DATA: ls_cill_log      TYPE zglt_cill_log,
+          lt_cill_log      TYPE STANDARD TABLE OF zglt_cill_log,
+          lt_recon         TYPE STANDARD TABLE OF zglt_i1418_recon,
+          ls_recon         TYPE zglt_i1418_recon,
+          lv_count         TYPE i,
+          lv_len           TYPE i,
+          ls_recon_tab     TYPE gty_s_recon,
+          lv_idoc_no       TYPE edi_docnuc,
+          lv_tabix         TYPE sy-tabix,
+          lv_recon_counter TYPE sy-tabix.
+
+*------------------------------------------------------------------------------
+* 1. Update the recon flag to respective records
+* 2. Create a recon table with calculations seggregated based on error and success
+* and send to CILL as proxy
+*------------------------------------------------------------------------------
+    CLEAR: lv_count, lt_cill_log[], lt_recon[].
+    SORT ct_cill_log BY country_key batch_id idoc_no.
+
+    LOOP AT ct_cill_log INTO ls_cill_log GROUP BY ls_cill_log-cill_id ASSIGNING FIELD-SYMBOL(<lfs_group>).
+
+      LOOP AT GROUP <lfs_group> ASSIGNING FIELD-SYMBOL(<lfs_cill_log>).
+
+        lv_count = lv_count + 1.
+
+*       Get an unique count of non-recon idocs
+        IF lv_idoc_no <> <lfs_cill_log>-idoc_no.
+          IF <lfs_cill_log>-recon_complete IS INITIAL.
+            ls_recon_tab-idoc_count = 1.
+          ENDIF.
+        ELSE.
+          ls_recon_tab-idoc_count = 0.
+        ENDIF.
+
+        lv_idoc_no = <lfs_cill_log>-idoc_no.
+*------------------------------------------------------------------------------
+* get the batch id, we have independent batch id field but its newly added hence old records
+* do not have data for it. Thus using CILL ID - 8 as batch id
+*------------------------------------------------------------------------------
+        lv_len = strlen( <lfs_cill_log>-cill_id ) - 8.
+        ls_recon_tab-batch_id01           = <lfs_cill_log>-cill_id+0(lv_len).
+
+        ls_recon_tab-batch_id             = ls_recon_tab-batch_id01.
+        ls_recon_tab-country_key          = <lfs_cill_log>-country_key.
+        ls_recon_tab-creation_date        = <lfs_cill_log>-creation_date.
+
+        ls_recon_tab-message_type         = <lfs_cill_log>-message_type.
+        ls_recon_tab-credit               = <lfs_cill_log>-credit.
+        ls_recon_tab-debit                = <lfs_cill_log>-debit.
+        ls_recon_tab-retail_credit_amount = <lfs_cill_log>-retail_credit_amount.
+        ls_recon_tab-retail_debit_amount  = <lfs_cill_log>-retail_debit_amount.
+        ls_recon_tab-ack_count            = <lfs_cill_log>-ack_counter.
+        ls_recon_tab-document_line_count  = <lfs_cill_log>-document_line_count.
+
+        IF <lfs_cill_log>-message_type EQ 'S' AND <lfs_cill_log>-ack_counter > 0.
+          ls_recon_tab-message_type = 'S'.
+          ls_recon_tab-ack_count = 1.
+          COLLECT ls_recon_tab INTO ct_recon_tab.
+
+* If a record has type success and ack counter as 3, it implies earlier 3 - 1 = 2 failed attempts were made
+* Thus success ack counter should be 1 and failed ack counter as 2
+* The credit, debit and document lines should also be calculated accordingly
+          ls_recon_tab-message_type          = 'E'.
+          ls_recon_tab-idoc_count            = 0.
+          ls_recon_tab-ack_count             = ( <lfs_cill_log>-ack_counter - 1 ).
+          IF ls_recon_tab-ack_count > 0.
+            ls_recon_tab-credit              = ls_recon_tab-credit * ls_recon_tab-ack_count.
+            ls_recon_tab-debit               = ls_recon_tab-debit * ls_recon_tab-ack_count.
+            ls_recon_tab-retail_credit_amount = ls_recon_tab-retail_credit_amount * ls_recon_tab-ack_count.
+            ls_recon_tab-retail_debit_amount  = ls_recon_tab-retail_debit_amount * ls_recon_tab-ack_count.
+            ls_recon_tab-document_line_count = ls_recon_tab-document_line_count * ls_recon_tab-ack_count.
+
+            COLLECT ls_recon_tab INTO ct_recon_tab.
+            CLEAR ls_recon_tab.
+          ENDIF.
+
+        ELSE.
+          COLLECT ls_recon_tab INTO ct_recon_tab.
+          CLEAR ls_recon_tab.
+        ENDIF.
+
+
+
+*------------------------------------------------------------------------------
+*       Update recon completion flag
+*------------------------------------------------------------------------------
+        <lfs_cill_log>-recon_complete = abap_true.
+        APPEND <lfs_cill_log> TO lt_cill_log.
+
+*       Update the log table
+        IF lv_count EQ 500.
+
+          lv_recon_counter = lv_recon_counter + lines( lt_cill_log ).
+
+          MODIFY zglt_cill_log FROM TABLE lt_cill_log. "#EC CI_IMUD_NESTED
+          IF sy-subrc EQ 0.
+            COMMIT WORK.
+          ENDIF.
+
+*         Clear objects
+          CLEAR: lt_cill_log[], lv_count.
+        ENDIF.
+
+      ENDLOOP.  "end group
+    ENDLOOP.
+
+*------------------------------------------------------------------------------
+* Update the log table. to not miss out any records which dont fall in packet size
+*------------------------------------------------------------------------------
+    IF lt_cill_log[] IS NOT INITIAL.
+
+      lv_recon_counter = lv_recon_counter + lines( lt_cill_log ).
+      MODIFY zglt_cill_log FROM TABLE lt_cill_log.
+      IF sy-subrc EQ 0.
+        COMMIT WORK.
+      ENDIF.
+
+*    Clear objects
+      CLEAR: lt_cill_log[], lv_count.
+    ENDIF.
+
+* It sends exact records which has processed for recon
+    cv_recon_counter = lv_recon_counter.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>PURGE_DATA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_LOG_TABLE                   TYPE        CHAR1
+* | [--->] IV_RECON_TABLE                 TYPE        CHAR1
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD PURGE_DATA.
+************************************************************************
+*  Class           : ZFGLCL_CILL_OUT_INTF_I01418                       *
+*  Method          : PURGE_DATA                                        *
+*  Object ID       : I01528/I01418                                     *
+*  Title           : Send outbound response to CILL                    *
+*  Author          : Mohammed Zakir                                    *
+*  Country         : Global                                            *
+*  Creation Date   : 25/06/2021                                        *
+*  Logical DB      : None                                              *
+*  Reference       : None                                              *
+*  Scheduling      : None                                              *
+*  Description     : Purge the processed data from custom table        *
+*----------------------------------------------------------------------*
+* Modifications                                                        *
+*  User ID     Date        Request     Description                     *
+*  VN50SXA     09/07/2020  DR0K900310  Initial Development             *
+*  R0T04VR     17/12/2021  DF4K900265  V2-Purge recon table            *
+************************************************************************
+    TYPES:
+      BEGIN OF lty_s_range_cillid,
+        sign   TYPE char1,
+        option TYPE char2,
+        low    TYPE edi_docnuc,
+        high   TYPE edi_docnuc,
+      END OF lty_s_range_cillid.
+
+    DATA:
+      lv_date       TYPE sy-datum,
+      lv_days       TYPE char3,
+      lv_lines_char TYPE string,
+      lt_value      TYPE abap_parmbind_tab,
+      lt_data_tab   TYPE STANDARD TABLE OF gty_s_data_tab,
+      lt_idoc_no    TYPE STANDARD TABLE OF lty_s_range_cillid.
+
+*Fetch the constant from BRF+
+    TRY.
+        CALL METHOD zzxxcl_common_utility=>execute_brf_function
+          EXPORTING
+            iv_function_id = gc_func_id           " BRF+ Function ID
+          IMPORTING
+            ev_result      = DATA(lo_result)
+          CHANGING
+            ct_name_value  = lt_value.
+      CATCH cx_fdt.
+    ENDTRY.
+
+    ASSIGN lo_result->* TO FIELD-SYMBOL(<lfs_result>).
+    IF <lfs_result> IS ASSIGNED.
+      lt_data_tab = <lfs_result>.
+    ENDIF.
+
+    IF lt_data_tab IS NOT INITIAL.
+      SORT lt_data_tab BY iv_input.
+*Get the value corresponding to value 'RETENTION_DAYS' from decission table present in BRF+
+      READ TABLE lt_data_tab ASSIGNING FIELD-SYMBOL(<lfs_data_tab>)
+        WITH KEY iv_input = gc_retention
+        BINARY SEARCH.
+      IF sy-subrc = 0.
+        lv_days = <lfs_data_tab>-ev_output.
+      ENDIF.
+    ENDIF.
+
+*Calculate date based on constant in BRF+
+    lv_date = sy-datum - lv_days.
+
+*------------------------------------------------------------------------------
+*Fetch the records from CILL LOG table which are processed
+*------------------------------------------------------------------------------
+  IF iv_log_table IS NOT INITIAL.
+    SELECT idoc_no,
+           cill_id,
+           interface_id
+           FROM zglt_cill_log
+           INTO TABLE @DATA(lt_cill_log)
+           WHERE sap_process_date LE @lv_date
+           AND processed = @abap_true.  "#EC CI_PRIVACC
+    IF sy-subrc = 0.
+      LOOP AT lt_cill_log ASSIGNING FIELD-SYMBOL(<lfs_cill_log>).
+        APPEND VALUE #( sign = gc_i option = gc_eq low = <lfs_cill_log>-idoc_no ) TO lt_idoc_no.
+      ENDLOOP.
+    ENDIF.
+
+*------------------------------------------------------------------------------
+*Delete data from custom table based on the calculated date above.
+*Delete all records which are processed and are created before the date
+* calculated above.
+*------------------------------------------------------------------------------
+    IF NOT lv_date IS INITIAL.
+      DELETE FROM zglt_cill_log WHERE sap_process_date LE lv_date
+                                    AND processed = abap_true.
+      IF sy-subrc = 0.
+        DELETE FROM zglt_log_msg WHERE idoc_no IN lt_idoc_no.
+        IF sy-subrc = 0.
+          COMMIT WORK.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+*Display the messages
+    DESCRIBE TABLE lt_cill_log LINES DATA(lv_lines).
+    lv_lines_char = lv_lines.
+    CONDENSE lv_lines_char.
+    WRITE : TEXT-t04 , lv_lines_char.
+   ENDIF. "Purge the log table
+
+*------------------------------------------------------------------------------
+* Purge the recon table data ++V2
+*------------------------------------------------------------------------------
+   IF iv_recon_table IS NOT INITIAL.
+     IF lv_date IS NOT INITIAL.
+       DELETE FROM zglt_i1418_recon WHERE recon_date LE lv_date.
+       IF sy-subrc EQ 0.
+         COMMIT WORK.
+       ENDIF.
+     ENDIF.
+
+*Display the messages
+    lv_lines_char = sy-dbcnt.
+    CONDENSE lv_lines_char.
+    WRITE : TEXT-t07 , lv_lines_char.
+   ENDIF. "Purge the recon table
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>REFINE_ERROR_MESSSAGES
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD REFINE_ERROR_MESSSAGES.
+    DATA: lt_sim_msg01   TYPE SORTED TABLE OF gty_s_sim_messages
+                         WITH NON-UNIQUE KEY row type id number.
+
+    lt_sim_msg01[] = ct_sim_msg[].
+
+* Remove the business area duplicate messages
+    DELETE ADJACENT DUPLICATES FROM lt_sim_msg01 COMPARING row type message_v1.
+
+    DELETE lt_sim_msg01 WHERE type = gc_e AND id = gc_fn AND number = gc_031 AND row IS INITIAL.
+    IF sy-subrc <> 0.
+      DELETE lt_sim_msg01 WHERE type = gc_e AND id = gc_f5 AND number = gc_162 AND row IS INITIAL.
+    ENDIF.
+
+* Begin of change VN5485T.
+* Below changes has been done to prevent the deletion of single profit centre and cost centre messages
+    DATA(lt_sim_msg02) = lt_sim_msg01.
+    DATA(lt_sim_msg03) = lt_sim_msg01.
+    DELETE lt_sim_msg02 WHERE id NE gc_km AND number NE gc_026. "#EC CI_SORTSEQ
+    DELETE lt_sim_msg03 WHERE id NE gc_ki AND number NE gc_260. "#EC CI_SORTSEQ
+    DESCRIBE TABLE lt_sim_msg02 LINES DATA(lv_count1).
+    DESCRIBE TABLE lt_sim_msg03 LINES DATA(lv_count2).
+
+    LOOP AT lt_sim_msg01 INTO DATA(ls_sim_msg).
+*------------------------------------------------------------------------------
+* Remove duplicate profit center messages
+*------------------------------------------------------------------------------
+      IF lv_count1 GT 1.                                                        "VN5485T FINTWO 40747
+        IF ls_sim_msg-id EQ gc_fagl AND ls_sim_msg-number EQ gc_001.
+          READ TABLE lt_sim_msg01 ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>)
+            WITH KEY type = gc_e
+                     id = gc_km
+                     number = gc_026
+                     row = ls_sim_msg-row.
+          IF <lfs_sim_msg> IS ASSIGNED.
+            <lfs_sim_msg>-del_flag = abap_true.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+
+*------------------------------------------------------------------------------
+* Remove duplicate cost center messages
+*------------------------------------------------------------------------------
+      IF lv_count2 GT 1.                                                         "VN5485T FINTWO 40747
+        IF ls_sim_msg-id EQ gc_f5 AND ls_sim_msg-number EQ gc_351.
+          READ TABLE lt_sim_msg01 ASSIGNING <lfs_sim_msg>
+            WITH KEY type = gc_e
+                     id = gc_ki
+                     number = gc_260
+                     row = ls_sim_msg-row.
+          IF <lfs_sim_msg> IS ASSIGNED.
+            <lfs_sim_msg>-del_flag = abap_true.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+
+    ENDLOOP.
+
+* Remove the duplicate messages where deletion flag is set earlier
+    DELETE lt_sim_msg01 WHERE del_flag IS NOT INITIAL.  "#EC CI_SORTSEQ
+
+* Assign back the messages
+    ct_sim_msg[] = lt_sim_msg01[].
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>SEND_EMAIL
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_TOTAL_LINES                 TYPE        INT4
+* | [--->] IV_PROXY_COUNTER               TYPE        INT4
+* | [--->] IV_COUNTRY                     TYPE        LAND1(optional)
+* | [<---] EV_ERROR                       TYPE        CHAR1
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD SEND_EMAIL.
+
+* Local Data Declarations
+    DATA: lt_objtxt TYPE STANDARD TABLE OF string,
+          lo_email  TYPE REF TO zzxxcl_email_utility,
+          lv_txt    TYPE string,
+          lv_dat    TYPE char10,
+          lv_valid  TYPE boolean,
+          lv_msg    TYPE string,
+          lv_type   TYPE c,
+          lv_text   TYPE string,
+          lv_exc    TYPE REF TO cx_root.
+
+    CONSTANTS lc_i01418 TYPE zd_tax_obj VALUE 'I01418'.
+
+    TRY.
+* E-mail Body
+        CONCATENATE sy-datum+4(2) '/' sy-datum+6(2) '/' sy-datum+0(4) INTO lv_dat.
+        CONCATENATE 'CILL Reconciliation data' space 'processed on' space lv_dat space 'at' space sy-timlo+0(2) ':' sy-timlo+2(2) ':' sy-timlo+4(2) '.'
+                    INTO lv_txt RESPECTING BLANKS.
+        APPEND lv_txt TO lt_objtxt[].
+        CLEAR lv_txt.
+
+        lv_text = iv_total_lines.
+        CONDENSE lv_text.
+        CONCATENATE 'Number of batches sent to CILL are :' lv_text INTO lv_txt SEPARATED BY space RESPECTING BLANKS.
+        APPEND lv_txt TO lt_objtxt[].
+        CLEAR: lv_text, lv_txt.
+
+        lv_text = iv_proxy_counter.
+        CONDENSE lv_text.
+        CONCATENATE 'Number of proxy messages sent :' lv_text INTO lv_txt SEPARATED BY space RESPECTING BLANKS.
+        APPEND lv_txt TO lt_objtxt[].
+        CLEAR: lv_text, lv_txt.
+
+* Get Receipient
+        SELECT SINGLE email_id FROM zglt_distr_list
+          WHERE land1 EQ @iv_country
+          AND object_id EQ @lc_i01418
+          INTO @DATA(lv_recp).  "#EC CI_PRIVACC
+
+        IF sy-subrc = 0.
+
+* Validate email
+          zzxxcl_email_utility=>validate_email_id( EXPORTING  iv_email = lv_recp IMPORTING ev_valid = lv_valid  ).
+          IF lv_valid = abap_true.
+
+*Send E-Mail
+            lv_txt = 'S4 to CILL Reconciliation details'.
+            lo_email = NEW #( iv_to = CONV #( lv_recp )  iv_subject = lv_txt ).
+            lo_email->set_body_text( it_lines = lt_objtxt ).
+            sy-subrc = lo_email->send( ).
+
+            CASE sy-subrc.
+              WHEN 0.                                                 "Mail successfully delivered
+                lv_msg = 'Email sent successfully'.
+                lv_type = 'S'.
+              WHEN OTHERS.                                            "Do nothing on fail
+                lv_msg = 'Unable to send an email'.
+                lv_type = 'E'.
+            ENDCASE.
+
+          ENDIF.  "if valid
+
+        ELSE.
+
+          lv_msg = 'Recipient not found'.
+          lv_type = 'S'.
+
+        ENDIF.  "recepient
+
+        MESSAGE |{ lv_msg }| TYPE 'S' DISPLAY LIKE lv_type.
+
+* Exception handling
+      CATCH cx_root INTO lv_exc.
+        MESSAGE |Error: { lv_exc->get_longtext( ) }| TYPE 'S'.
+    ENDTRY.
+
+* Clear objects
+    CLEAR: lv_txt, lv_msg, lv_type, lo_email, lv_valid, lv_dat, lt_objtxt[].
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>SEND_OUTBOUND_RESPONSE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_FLAG                        TYPE        CHAR1(optional)
+* | [--->] IV_ACTIVATE_ACK_COUNT          TYPE        CHAR1(optional)
+* | [--->] IV_PACKAGE_SIZE                TYPE        I(optional)
+* | [<-->] CT_TABLE                       TYPE        GTY_T_LOG_TABLE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD SEND_OUTBOUND_RESPONSE.
+************************************************************************
+*  Class           : ZFGLCL_CILL_OUT_INTF_I01418                       *
+*  Method          : SEND_OUTBOUND_RESPONSE                            *
+*  Object ID       : I01528/I01418                                     *
+*  Title           : Send outbound response to CILL                    *
+*  Author          : Mohammed Zakir                                    *
+*  Country         : Global                                            *
+*  Creation Date   : 25/06/2021                                        *
+*  Logical DB      : None                                              *
+*  Reference       : None                                              *
+*  Scheduling      : None                                              *
+*  Description     : Send the response to CILL using Outbound proxy    *
+*----------------------------------------------------------------------*
+* Modifications                                                        *
+*  User ID     Date        Request     Description                     *
+*  VN50SXA     09/07/2020  DR0K900310  Initial Development             *
+*  R0T04VR     22/11/2021  DF4K900265  CILL Recon changes              *
+* Update Ack counter for each record being sent to CILL in table       *
+* ZGLT_CILL_LOG as per given FS                                        *
+*  R0T04VR     11/10/2022  DF4K900265  1.2
+* For ack, do not send newly added retail amount data
+************************************************************************
+    DATA : ls_cill_aif      TYPE zgls_cill_aif,
+           ls_log_out       TYPE zgls_cill_log,
+           ls_messages      TYPE zgls_cill_msg,
+           ls_idoc_status   TYPE bdidocstat,
+           lv_count         TYPE i,
+           lv_count_proxy   TYPE i,
+           lv_idoc_count    TYPE i,
+           lv_idoc_num      TYPE edidc-docnum,
+           lv_line_char     TYPE char10,
+           lt_value         TYPE abap_parmbind_tab,
+           lt_data_tab      TYPE STANDARD TABLE OF gty_s_data_tab,
+           lt_cill_log_temp TYPE STANDARD TABLE OF zglt_cill_log,
+           lt_cill_log      TYPE STANDARD TABLE OF zglt_cill_log,
+           lt_idoc_status   TYPE STANDARD TABLE OF bdidocstat,
+           lt_return        TYPE bapiret2_t,
+           lt_messages      TYPE zgltt_1418_messages,
+           lt_cill_log_aif  TYPE zgltt_cill_log,
+           lv_index         TYPE i.
+
+*------------------------------------------------------------------------------
+* Fetch the constant from BRF+
+*------------------------------------------------------------------------------
+    IF iv_package_size IS NOT INITIAL.
+      lv_idoc_count = iv_package_size.
+    ELSE.
+      TRY.
+          CALL METHOD zzxxcl_common_utility=>execute_brf_function
+            EXPORTING
+              iv_function_id = gc_func_id           " BRF+ Function ID
+            IMPORTING
+              ev_result      = DATA(lo_result)
+            CHANGING
+              ct_name_value  = lt_value.
+        CATCH cx_fdt.
+      ENDTRY.
+
+      ASSIGN lo_result->* TO FIELD-SYMBOL(<lfs_result>).
+      IF <lfs_result> IS ASSIGNED.
+        lt_data_tab = <lfs_result>.
+      ENDIF.
+
+      IF lt_data_tab IS NOT INITIAL.
+        SORT lt_data_tab BY iv_input.
+*    Get the value corresponding to value 'OUTBOUND_IDOC_COUNT' from decission table present in BRF+
+        READ TABLE lt_data_tab INTO DATA(ls_data_tab)
+          WITH KEY iv_input = gc_idoc_count
+          BINARY SEARCH.
+        IF sy-subrc = 0.
+          lv_idoc_count = ls_data_tab-ev_output.
+        ENDIF.
+      ENDIF.
+
+    ENDIF.
+
+
+    IF ct_table IS NOT INITIAL.
+      SORT ct_table BY idoc_no.
+* Fetch the messages from custom table based on the idoc number
+      SELECT * FROM zglt_log_msg
+               FOR ALL ENTRIES IN @ct_table
+               WHERE idoc_no = @ct_table-idoc_no
+               AND cill_id = @ct_table-cill_id
+               INTO TABLE @DATA(lt_log_msg).            "#EC CI_PRIVACC
+      IF sy-subrc = 0.
+        SORT lt_log_msg BY idoc_no.
+      ENDIF.
+    ENDIF.
+
+*------------------------------------------------------------------------------
+* Map the data fetched form custom table into outbound proxy structure
+*------------------------------------------------------------------------------
+    DESCRIBE TABLE ct_table LINES DATA(lv_lines1).
+
+    LOOP AT ct_table ASSIGNING FIELD-SYMBOL(<lfs_cill_log>).
+      lv_count = lv_count + 1.
+      DATA(lv_tabix) = sy-tabix.
+
+      ls_log_out = CORRESPONDING #( <lfs_cill_log> ).
+      ls_log_out-type = gc_ackn.
+      CLEAR: ls_log_out-retail_credit_amount, ls_log_out-retail_debit_amount. "++ 1.2
+
+* Skip in case of resend of processed acknowledgement
+      <lfs_cill_log>-processed    = abap_true.
+      ls_log_out-sap_process_date = <lfs_cill_log>-sap_process_date = sy-datum.
+      ls_log_out-sap_process_time = <lfs_cill_log>-sap_process_time = sy-uzeit.
+
+      IF iv_flag IS NOT INITIAL.
+        ls_log_out-retrigger_message = abap_true.
+        <lfs_cill_log>-retrigger_message = abap_true.
+      ENDIF.
+
+* Begin R0T04VR
+* Ack counter should exclusively work for sending ack to CILL and not for reprocess
+      IF iv_activate_ack_count IS NOT INITIAL.
+* Keep incrementing the Ackn counter by 1 for each record for given Idoc and Cill id
+* If recon is completed; then reset the counter to 1. However if same record is reprocessed multiple times
+* in that case also ack counter will always be reset 1 which is invalid thus to tackle this case the RECON COMPLETE set to Y
+* so that RECON COMPLETE EQ ABAP_TRUE will get passed and ack counter will be incremented
+        IF <lfs_cill_log>-recon_complete EQ abap_true.
+          <lfs_cill_log>-ack_counter = 1.
+
+* The Recon flag should set to 'Y', it denotes that the recon for this idoc is done but it is
+* intended to reprocssed. when the same entry will be again sent for ack, it will then
+* enable acknowledgement counter to increment as usual. The recon flag will again set to 'X' at the
+* time of recon inside method I01528_SEND_RECON
+          <lfs_cill_log>-recon_complete = 'Y'.
+        ELSE.
+          <lfs_cill_log>-ack_counter = <lfs_cill_log>-ack_counter + 1.
+        ENDIF.
+      ENDIF.
+* End R0T04VR
+
+
+* Add the messages
+      CLEAR lt_messages.
+      READ TABLE lt_log_msg TRANSPORTING NO FIELDS
+        WITH KEY idoc_no = <lfs_cill_log>-idoc_no BINARY SEARCH.
+      IF sy-subrc = 0.
+        lv_index = sy-tabix.
+        LOOP AT lt_log_msg ASSIGNING FIELD-SYMBOL(<lfs_log_msg>) FROM lv_index. "#EC CI_NESTED
+          IF <lfs_log_msg>-idoc_no NE <lfs_cill_log>-idoc_no.
+            EXIT.
+          ENDIF.
+          ls_messages-message = <lfs_log_msg>-sap_message.
+          ls_messages-error_code = <lfs_log_msg>-error_code.
+          ls_messages-error_code_desc = <lfs_log_msg>-error_code_desc.
+          ls_messages-line_item = <lfs_log_msg>-line_item.
+          APPEND ls_messages TO lt_messages.
+          CLEAR ls_messages.
+        ENDLOOP.
+      ENDIF.
+
+* Append structure
+      ls_log_out-sap_message = lt_messages.
+      APPEND ls_log_out TO lt_cill_log_aif.
+      CLEAR ls_log_out.
+      APPEND <lfs_cill_log> TO lt_cill_log_temp.
+
+*------------------------------------------------------------------------------
+* Send the data using proxy
+*------------------------------------------------------------------------------
+      IF lv_lines1 = lv_tabix OR lv_idoc_count = lv_count.
+        ls_cill_aif-cill_data = lt_cill_log_aif.
+        lv_count_proxy = lv_count_proxy + 1.
+
+        CALL FUNCTION '/AIF/SEND_WITH_PROXY'
+          EXPORTING
+            ns                   = gc_zfingl
+            ifname               = gc_ob1418cill
+            ifversion            = gc_00001
+          TABLES
+            add_return_tab       = lt_return
+          CHANGING
+            sap_struct           = ls_cill_aif
+          EXCEPTIONS
+            persistency_error    = 1
+            status_update_failed = 2
+            missing_keys         = 3
+            interface_not_found  = 4
+            transformation_error = 5
+            general_error        = 6
+            OTHERS               = 7.
+        IF sy-subrc <> 0.
+* Implement suitable error handling here
+        ENDIF.
+
+
+
+        IF sy-subrc = 0.
+          IF lt_cill_log_temp IS NOT INITIAL.
+* Update the custom table for records which are sent through proxy
+* Skip in case of resend of processed acknowledgement
+            MODIFY zglt_cill_log FROM TABLE lt_cill_log_temp. "#EC CI_IMUD_NESTED
+            IF sy-subrc = 0.
+              COMMIT WORK.
+            ENDIF.
+
+          ENDIF.
+        ENDIF.
+        CLEAR : lv_count, ls_cill_aif, lt_cill_log_aif[], lt_cill_log_temp[].
+      ENDIF.  "Packet check
+
+    ENDLOOP.  "ct_table
+
+*------------------------------------------------------------------------------
+* Display the messages
+*------------------------------------------------------------------------------
+    MESSAGE |{ TEXT-t03 } { lv_lines1 }| TYPE 'I'.
+
+    lv_line_char =  lv_lines1.
+    CONDENSE lv_line_char.
+    WRITE :/ TEXT-t03, lv_line_char.
+    lv_line_char =  lv_count_proxy.
+    CONDENSE lv_line_char.
+    WRITE :/ TEXT-t05, lv_line_char.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>SEND_RECON_PROXY
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_PROXY_TYPE                  TYPE        CHAR1
+* | [--->] IV_PROXY_PER_BATCH             TYPE        INT4
+* | [--->] IV_ADHOC_RUN                   TYPE        CHAR1(optional)
+* | [--->] IV_COUNTRY                     TYPE        LAND1(optional)
+* | [<-->] CV_TOTAL_LINES                 TYPE        INT4(optional)
+* | [<-->] CT_TABLE                       TYPE        GTY_T_RECON
+* | [<-->] CV_COUNT_PROXY                 TYPE        INT4(optional)
+* | [<-->] CT_RETURN                      TYPE        BAPIRET2_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD SEND_RECON_PROXY.
+    DATA: lv_count        TYPE i,
+          lv_tabix        TYPE sy-tabix,
+          ls_log_out      TYPE zgls_cill_log,
+          lt_cill_log_aif TYPE zgltt_cill_log,
+          ls_cill_aif     TYPE zgls_cill_aif,
+          lv_time         TYPE sy-uzeit,
+          lt_recon        TYPE STANDARD TABLE OF zglt_i1418_recon,
+          ls_recon        TYPE zglt_i1418_recon.
+
+    DATA(lv_lines) =  lines( ct_table ).
+    LOOP AT ct_table ASSIGNING FIELD-SYMBOL(<lfs_cill_recon>).
+
+      lv_count = lv_count + 1.
+      lv_tabix = sy-tabix.
+*------------------------------------------------------------------------------
+* Populate the recon table data
+*------------------------------------------------------------------------------
+      ls_recon = CORRESPONDING #( <lfs_cill_recon> MAPPING country = country_key
+                                                         batch_id = batch_id
+                                                         posting_status = message_type
+                                                         creation_date = creation_date
+                                                         debit = debit
+                                                         credit = credit
+                                                         document_line_count = document_line_count
+                                                         ack_counter = ack_count
+                                                         idoc_count = idoc_count
+                                                         retail_credit_amount = retail_credit_amount
+                                                         retail_debit_amount = retail_debit_amount ).
+      ls_recon-mandt = sy-mandt.
+      ls_recon-recon_date = sy-datum.
+      ls_recon-recon_time = lv_time = sy-uzeit.
+      ls_recon-type = iv_proxy_type.
+
+      APPEND ls_recon TO lt_recon.
+      CLEAR: ls_recon.
+
+*------------------------------------------------------------------------------
+**- Fill Proxy Output Data
+*------------------------------------------------------------------------------
+      CLEAR ls_log_out.
+      ls_log_out = CORRESPONDING #( <lfs_cill_recon> MAPPING cill_id = batch_id ).
+
+      ls_log_out-type            = iv_proxy_type.
+      ls_log_out-cill_doc_count  = <lfs_cill_recon>-idoc_count.
+      ls_log_out-s4_ack_count    = <lfs_cill_recon>-ack_count.
+      CONDENSE: ls_log_out-cill_doc_count, ls_log_out-s4_ack_count.
+
+      ls_log_out-retail_credit_amount = zzxxcl_common_utility=>put_sign_in_front( iv_amount = conv #( ls_log_out-retail_credit_amount ) ).
+
+      ls_log_out-sap_process_date   = sy-datum.
+      ls_log_out-sap_process_time   = lv_time.
+
+      lt_cill_log_aif = VALUE #( BASE lt_cill_log_aif ( ls_log_out  ) ).
+
+*------------------------------------------------------------------------------
+**- Send The Data Using Proxy
+*------------------------------------------------------------------------------
+      IF lv_lines = lv_tabix OR iv_proxy_per_batch = lv_count.
+
+        ls_cill_aif-cill_data = lt_cill_log_aif.
+        cv_count_proxy = cv_count_proxy + 1.
+
+        CALL FUNCTION '/AIF/SEND_WITH_PROXY'           "#EC CI_SUBRC
+          EXPORTING
+            ns                   = 'ZFINGL'
+            ifname               = 'OB1418CILL'
+            ifversion            = '00001'
+          TABLES
+            add_return_tab       = ct_return
+          CHANGING
+            sap_struct           = ls_cill_aif
+          EXCEPTIONS
+            persistency_error    = 1
+            status_update_failed = 2
+            missing_keys         = 3
+            interface_not_found  = 4
+            transformation_error = 5
+            general_error        = 6
+            OTHERS               = 7.
+        IF sy-subrc = 0.
+
+        ENDIF.
+
+*------------------------------------------------------------------------------
+* Update the recon table, only for non-adhoc run
+*------------------------------------------------------------------------------
+        IF iv_adhoc_run IS INITIAL.
+          MODIFY zglt_i1418_recon FROM TABLE lt_recon.  "#EC CI_IMUD_NESTED
+          IF sy-subrc EQ 0.
+            COMMIT WORK.
+          ENDIF.
+        ENDIF.
+
+        CLEAR : lv_count, ls_cill_aif.
+        REFRESH : lt_cill_log_aif[], lt_recon[].
+      ENDIF.
+
+    ENDLOOP.  "ct_table
+
+
+*------------------------------------------------------------------------------
+* Send the recon summary email
+*------------------------------------------------------------------------------
+    send_email(
+      EXPORTING
+        iv_country       = iv_country
+        iv_total_lines   = lv_lines
+        iv_proxy_counter = cv_count_proxy
+      IMPORTING
+        ev_error         = DATA(lv_error)
+    ).
+
+    cv_total_lines = lv_lines.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZFGLCL_I01418_CILL_POC=>SIMULATION_CHECK
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_IDOC_DATA                   TYPE        EDIDD_TT(optional)
+* | [--->] IT_MESSAGES                    TYPE        BAPIRET2_T
+* | [--->] IS_EDIDC                       TYPE        EDIDC(optional)
+* | [<---] ET_RETURN                      TYPE        BAPIRET2_T
+* | [<-->] CT_SIMU_MESSAGES               TYPE        BAPIRET2_T
+* | [<-->] CT_ERR_ITEMS                   TYPE        BAPIACGL09_TAB
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD SIMULATION_CHECK.
+************************************************************************
+*  Class           : ZFGLCL_CILL_OUT_INTF_I01418                       *
+*  Method          : SIMULATION_CHECK                                  *
+*  Object ID       : I01528/I01418                                     *
+*  Title           : Outbound Recon Response                           *
+*  Author          : Mohammed Zakir                                    *
+*  Country         : Global                                            *
+*  Creation Date   : 29/06/2021                                        *
+*  Logical DB      : None                                              *
+*  Reference       : None                                              *
+*  Scheduling      : None                                              *
+*  Description     : Fill error line item details                      *
+*----------------------------------------------------------------------*
+* Modifications                                                        *
+*  User ID     Date        Request     Description                     *
+*  VN50SXA     09/07/2020  DR0K900310  Initial Development             *
+*----------------------------------------------------------------------*
+*  R0T04VR     29/10/2021  DF4K900265                                  *
+*  Remove duplicate messages for business area, profit center and      *
+*  cost center                                                         *
+*  VN5485T     12/09/2022  DF4K902168  Avoid updating valid details    *
+*                                      from zglt_log_msg table         *
+*   VN51ZYP     1/4/2023   DF4K905057 To get the line item number for  *
+*                                      customer and vendor error       *
+*  G0V02PK      25-Jul-2023 DF4K906684 To pass item number for vendor  *
+*                                      blocking error issues           *
+************************************************************************
+    TYPES:BEGIN OF lty_s_sim_messages.
+            INCLUDE  TYPE bapiret2.
+    TYPES del_flag TYPE char1.
+    TYPES END OF lty_s_sim_messages.
+
+    DATA: ls_header      TYPE bapiache09,
+          ls_customercpd TYPE bapiacpa09,
+          ls_accountgl   TYPE bapiacgl09,
+          ls_currency    TYPE bapiaccr09,
+          ls_accounttax  TYPE bapiactx09,
+          ls_extension2  TYPE e1bpparex,
+          ls_cill_temp   TYPE bapiacgl09,
+          lt_accountgl   TYPE STANDARD TABLE OF bapiacgl09,
+          lt_cill_temp   TYPE STANDARD TABLE OF bapiacgl09,
+          lt_currency    TYPE STANDARD TABLE OF bapiaccr09,
+          lt_extension2  TYPE STANDARD TABLE OF bapiparex,
+          lt_accounttax  TYPE STANDARD TABLE OF bapiactx09,
+          lt_return      TYPE STANDARD TABLE OF bapiret2,
+          ls_e1bpache09  TYPE e1bpache09,
+          ls_e1bpacpa09  TYPE e1bpacpa09,
+          ls_e1bpacgl09  TYPE e1bpacgl09,
+          ls_e1bpaccr09  TYPE e1bpaccr09,
+          ls_e1bpparex   TYPE e1bpparex,
+          lv_date        TYPE sy-datum,
+          ls_sim_msg     TYPE lty_s_sim_messages,
+          lt_sim_msg     TYPE TABLE OF lty_s_sim_messages,
+          lt_sim_msg01   TYPE SORTED TABLE OF lty_s_sim_messages
+                         WITH NON-UNIQUE KEY row type id number.
+    DATA: lt_t004f      TYPE gty_t_t004f,
+          lt_bukrs      TYPE gty_t_bukrs,
+          lt_blart      TYPE gty_t_blart,
+          lt_tgsb       TYPE gty_t_gsber,
+          lt_skb1       TYPE gty_t_skb1,
+          lt_prctr      TYPE gty_t_prctr,
+          lt_costcenter TYPE gty_t_costcenter.
+
+*------------------------------------------------------------------------------
+* Get the data from IDOC segements
+*------------------------------------------------------------------------------
+    READ TABLE it_messages TRANSPORTING NO FIELDS WITH KEY type = gc_e.
+    IF sy-subrc EQ 0.
+      LOOP AT it_idoc_data INTO DATA(ls_idoc_data).
+        CASE:ls_idoc_data-segnam .
+          WHEN gc_e1bpache09.
+            ls_e1bpache09 = ls_idoc_data-sdata.
+            IF ls_e1bpache09-trans_date IS INITIAL.
+              ls_e1bpache09-trans_date = sy-datum.
+            ENDIF.
+            ls_header = CORRESPONDING #( ls_e1bpache09 ).
+            lv_date = ls_header-pstng_date.
+          WHEN gc_e1bpacpa09.
+            ls_e1bpacpa09 = ls_idoc_data-sdata.
+            ls_customercpd = CORRESPONDING #( ls_e1bpacpa09 ).
+          WHEN gc_e1bpacgl09.
+            ls_e1bpacgl09 = ls_idoc_data-sdata.
+            ls_accountgl = CORRESPONDING #( ls_e1bpacgl09 ).
+            ls_accountgl-pstng_date = lv_date.
+            APPEND ls_accountgl TO lt_accountgl.
+            CLEAR: ls_accountgl.
+          WHEN gc_e1bpaccr09.
+            ls_e1bpaccr09 = ls_idoc_data-sdata.
+            ls_currency = CORRESPONDING #( ls_e1bpaccr09 ).
+            APPEND  ls_currency TO  lt_currency.
+          WHEN gc_e1bpparex.
+            ls_e1bpparex = ls_idoc_data-sdata.
+            ls_extension2 = CORRESPONDING #( ls_e1bpparex ).
+            APPEND  ls_extension2 TO lt_extension2.
+        ENDCASE.
+        CLEAR: ls_idoc_data,ls_accountgl,ls_currency,ls_extension2,
+               ls_e1bpache09,ls_e1bpacpa09, ls_e1bpacgl09,ls_e1bpaccr09,ls_e1bpparex.
+      ENDLOOP.
+
+      CLEAR lt_sim_msg.
+      lt_sim_msg = it_messages.
+*------------------------------------------------------------------------------
+* Fetch messages with line item
+*------------------------------------------------------------------------------
+      CALL FUNCTION 'BAPI_ACC_DOCUMENT_CHECK'
+        EXPORTING
+          documentheader = ls_header
+          customercpd    = ls_customercpd
+        TABLES
+          accountgl      = lt_accountgl
+          currencyamount = lt_currency
+          return         = lt_return
+          extension2     = lt_extension2.
+
+*to exclude the error messages for Customer and Vendor
+
+
+      IF NOT lt_return IS INITIAL.
+        DELETE lt_return WHERE row IS INITIAL.
+        IF NOT lt_return IS INITIAL.
+
+** BOC by Roli(VN50sx9)
+** Supressing the standard message for Channel field on return table
+          SORT lt_return BY type id number.
+          READ TABLE lt_return TRANSPORTING NO FIELDS WITH KEY type  = 'E' id = 'ZFGL' number = '320' BINARY SEARCH.
+          IF sy-subrc = 0.
+* Updated the logic and commented by VN77641 for deleting all the standard messages for channnel validation
+            DELETE lt_return WHERE type  = 'E' AND id = '00' AND number = '058' AND message_v4 = gc_zfglt_channel.
+*            READ TABLE lt_return TRANSPORTING  NO FIELDS WITH KEY
+*              type  = 'E' id = '00' number = '058' message_v4 = gc_zfglt_channel. "Table validation added by VN77641
+*            IF sy-subrc = 0.
+*              DELETE lt_return WHERE type  = 'E' AND id = '00' AND number = '058'. Commented by VN77641
+*            ENDIF.
+* End of comments and addition by vn77641
+          ENDIF.
+** Supressing the standard message for Channel field on SiMUlation table
+          SORT lt_sim_msg BY type id number.
+          READ TABLE lt_sim_msg TRANSPORTING NO FIELDS WITH KEY type  = 'E' id = 'ZFGL' number = '320' BINARY SEARCH.
+          IF sy-subrc = 0.
+* Updated the logic and commented by VN77641 for deleting all the standard messages for channnel validation
+            DELETE lt_sim_msg WHERE type  = 'E' AND id = '00' AND number = '058' AND message_v4 = gc_zfglt_channel.
+*            READ TABLE lt_sim_msg TRANSPORTING NO FIELDS WITH KEY
+*             type  = 'E' id = '00' number = '058' message_v4 = gc_zfglt_channel. "Table validation added by VN77641
+*            IF sy-subrc = 0.
+*              DELETE lt_sim_msg WHERE type  = 'E' AND id = '00' AND number = '058'. Comented by VN77641
+*            ENDIF.
+
+*End of comments and addition by vn77641
+          ENDIF.
+
+
+*-->Commented and logic updated by VN77641 to handle the channel validation alone
+
+***Start of comments
+*** Updating the row number with index number for return table, so that the below logic can be there as is
+*          LOOP AT lt_extension2 INTO DATA(ls_ext).
+*            DATA(lv_posnr) =  ls_ext-valuepart1+0(10).
+*            READ TABLE lt_accountgl INTO DATA(ls_gl) WITH KEY itemno_acc =  lv_posnr.
+*            IF sy-subrc = 0.
+*              lv_posnr = |{ lv_posnr ALPHA = OUT }|.
+*              DATA(lv_index) = sy-tabix.
+*              READ TABLE lt_return ASSIGNING FIELD-SYMBOL(<lfs_ret>) WITH KEY row = lv_posnr.
+*              IF <lfs_ret> IS ASSIGNED AND <lfs_ret>-type = 'E'.
+*                <lfs_ret>-row = lv_index.
+*              ENDIF.
+*            ENDIF.
+*          ENDLOOP.
+***End of comments
+
+*--->Begin of changes by VN77641 for the above commented code
+* For each line item in the extension structure
+*    ->get the channel value
+*    ->Read the message which is specific for channel field(ZFGL-320) and the row number is not populated
+*    ->Update the running item number to the message table that is used for updating the log table(LT_SIM_MSG)
+
+          LOOP AT lt_extension2 INTO DATA(ls_extension).
+            DATA(lv_item_no)   =  ls_extension-valuepart1+0(10).     "Item Number from extension structure
+            DATA(lv_channel)   =  ls_extension-valuepart1+50(10).    "Channel field from extension structure
+
+            READ TABLE lt_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) " Read the message row so that item number can be updated
+                          WITH KEY type       = gc_e      "'E'
+                                   id         = gc_zfgl   "'ZFGL'
+                                   number     = '320'
+                                   message_v1 = lv_channel
+                                   row        = 0.
+            IF sy-subrc EQ 0.
+              <lfs_sim_msg>-row = lv_item_no.
+            ENDIF.
+            CLEAR : lv_item_no,lv_channel,ls_extension.
+
+          ENDLOOP.
+*--->End of updated logic by VN77641
+
+
+** EOC by Roli(VN50sx9)
+
+          LOOP AT lt_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_message>)
+               WHERE id NE 'ZFGL' AND number NE '320'." Added by vn77641 to exclude channel validation to redetermine item number
+
+            READ TABLE lt_return ASSIGNING FIELD-SYMBOL(<lfs_return>) WITH KEY id = <lfs_sim_message>-id number = <lfs_sim_message>-number
+                type = <lfs_sim_message>-type message_v1 = <lfs_sim_message>-message_v1
+                message_v2 = <lfs_sim_message>-message_v2 message_v3 = <lfs_sim_message>-message_v3 message_v4 = <lfs_sim_message>-message_v4.
+            IF sy-subrc EQ 0.
+              IF <lfs_return>-row IS NOT INITIAL.
+                READ TABLE lt_accountgl INTO DATA(ls_err_lines) INDEX <lfs_return>-row.
+                IF sy-subrc EQ 0.
+                  <lfs_sim_message>-row =  ls_err_lines-itemno_acc. " To update row# with CILL line#
+                ENDIF.
+              ENDIF.
+              CLEAR: <lfs_return>, ls_err_lines.
+            ENDIF.
+          ENDLOOP.
+        ENDIF.
+      ENDIF.
+
+*------------------------------------------------------------------------------
+* Get the validation table data
+*------------------------------------------------------------------------------
+      get_validation(
+        IMPORTING
+          et_bukrs      = lt_bukrs
+          et_blart      = lt_blart
+          et_t004f      = lt_t004f
+          et_tgsb       = lt_tgsb
+          et_skb1       = lt_skb1
+          et_prctr      = lt_prctr
+          et_costcenter = lt_costcenter
+        CHANGING
+          ct_accountgl  = lt_accountgl                 " G/L account item
+      ).
+
+*  Begin of changes VN5485T Defect no - FINTWO-40747
+*  This changes has been made in order to avoid updation of valid entries
+*  in ZGLT_LOG_MSG.
+      SORT lt_accountgl BY itemno_acc gl_account.           "vn5485t
+      LOOP AT lt_accountgl ASSIGNING FIELD-SYMBOL(<lfs_accountgl>).
+*------------------------------------------------------------------------------
+* Validate Business Area
+*------------------------------------------------------------------------------
+        READ TABLE lt_skb1 INTO DATA(ls_skb1) WITH KEY
+                                bukrs = <lfs_accountgl>-comp_code " Added Company code | S0G00S3 | FINTWO-39144
+                                saknr = <lfs_accountgl>-gl_account. "#EC CI_SORTSEQ
+        IF sy-subrc = 0.
+          READ TABLE lt_t004f INTO DATA(ls_t004f) WITH KEY fstag = ls_skb1-fstag BINARY SEARCH.
+          IF sy-subrc = 0.
+            IF ls_t004f-faus1+32(1) = '+'.
+              validate_business_area(
+                EXPORTING
+                  it_tgsb      = lt_tgsb
+                CHANGING
+                  ct_sim_msg   = lt_sim_msg                 " Return table
+                  cs_accountgl = <lfs_accountgl>                 " G/L account item
+              ).
+            ENDIF.
+
+*------------------------------------------------------------------------------
+* Validate profit center
+*------------------------------------------------------------------------------
+            IF ls_t004f-faus1+41(1) = '+'.
+              validate_profit_center(
+                EXPORTING
+                  it_prctr     = lt_prctr
+                CHANGING
+                  ct_sim_msg   = lt_sim_msg
+                  cs_accountgl = <lfs_accountgl>                 " G/L account item
+              ).
+            ENDIF.
+
+*------------------------------------------------------------------------------
+* Validate cost center
+*------------------------------------------------------------------------------
+            IF ls_t004f-faus1+9(1) = '+'.
+              validate_cost_center(
+                EXPORTING
+                  it_costcenter = lt_costcenter
+                CHANGING
+                  ct_sim_msg    = lt_sim_msg
+                  cs_accountgl  = <lfs_accountgl>                 " G/L account item
+              ).
+            ENDIF.
+          ENDIF.
+        ENDIF.
+
+*------------------------------------------------------------------------------
+* Validate Company code
+*------------------------------------------------------------------------------
+        validate_company_code(
+          EXPORTING
+            it_bukrs     = lt_bukrs
+          CHANGING
+            cs_accountgl = <lfs_accountgl>                 " G/L account item
+            ct_sim_msg   = lt_sim_msg                 " Company Code
+        ).
+
+
+*------------------------------------------------------------------------------
+* Validate Document Type
+*------------------------------------------------------------------------------
+        validate_document_type(
+          EXPORTING
+            it_blart     = lt_blart
+          CHANGING
+            cs_accountgl = <lfs_accountgl>                 " G/L account item
+            ct_sim_msg   = lt_sim_msg
+        ).
+
+*------------------------------------------------------------------------------
+* Validate reference key
+*------------------------------------------------------------------------------
+        validate_reference_key(
+          CHANGING
+            cs_accountgl = <lfs_accountgl>                 " G/L account item
+            ct_sim_msg   = lt_sim_msg
+        ).
+
+        CLEAR: ls_skb1, ls_t004f.
+
+*to update the line item detail
+*BOC by VN51ZYP as part of defect#FMTWO-76110 to add line number for Customer and Vendor error
+*------------------------------------------------------------------------------
+* Validate Customer in CC
+*------------------------------------------------------------------------------
+        validate_customer_cc(
+          CHANGING
+            cs_accountgl = <lfs_accountgl>                 " G/L account item
+            ct_sim_msg   = lt_sim_msg
+        ).
+*EOC by VN51ZYP as part of defect#FMTWO-76110
+      ENDLOOP.  "lt_accountgl
+
+*------------------------------------------------------------------------------
+* Validate Amount
+*------------------------------------------------------------------------------
+      validate_amount(
+        EXPORTING
+          it_currency = lt_currency
+        CHANGING
+          ct_sim_msg  = lt_sim_msg
+      ).
+
+*------------------------------------------------------------------------------
+* Remove the duplicate records
+*------------------------------------------------------------------------------
+      refine_error_messsages(
+        CHANGING
+          ct_sim_msg = lt_sim_msg
+      ).
+
+      IF NOT lt_sim_msg IS INITIAL.
+        ct_simu_messages = CORRESPONDING #( lt_sim_msg ).
+      ENDIF.
+
+    ELSE.
+      ct_simu_messages[] = it_messages[].
+    ENDIF.  "it_messages
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>UPDATE_LOG_TABLE_FLAGS
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_DOCNUM                      TYPE        EDI_DOCNUM
+* | [--->] IV_CILL_ID                     TYPE        ZD_CILL_ID
+* | [<-->] CS_CILL_LOG                    TYPE        ZGLT_CILL_LOG
+* | [<-->] CT_CILL_LOG                    TYPE        GTY_T_CILL_LOG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD UPDATE_LOG_TABLE_FLAGS.
+
+* Get the all records which belongs to same CILL number
+    SELECT * FROM zglt_cill_log "#EC CI_PRIVACC
+      WHERE cill_id = @iv_cill_id
+      INTO TABLE @DATA(lt_cill_temp). "#EC CI_SUBRC
+*------------------------------------------------------------------------------
+* Remove latest flag from previous entries for given cill id and send for the update
+*------------------------------------------------------------------------------
+    LOOP AT lt_cill_temp ASSIGNING FIELD-SYMBOL(<lfs_cill>).
+      CLEAR <lfs_cill>-latest.
+      APPEND <lfs_cill> TO ct_cill_log.
+    ENDLOOP.
+
+* Set latest flag to recent record only
+    cs_cill_log-latest = abap_true.
+
+*------------------------------------------------------------------------------
+* Remove processed flag, if IDOC and CILL ID already exists which denotes this
+* record is unprocessed. It will allow this record to get picked for next processing
+*------------------------------------------------------------------------------
+    READ TABLE lt_cill_temp INTO DATA(ls_cill_log)
+      WITH KEY idoc_no = iv_docnum
+               cill_id = iv_cill_id.
+    IF sy-subrc = 0.
+      cs_cill_log-creation_date     = ls_cill_log-creation_date.
+      cs_cill_log-creation_time     = ls_cill_log-creation_time.
+      cs_cill_log-sap_process_date  = ls_cill_log-sap_process_date.
+      cs_cill_log-sap_process_time  = ls_cill_log-sap_process_time.
+      cs_cill_log-recon_complete    = ls_cill_log-recon_complete.
+      cs_cill_log-ack_counter       = ls_cill_log-ack_counter.
+      CLEAR cs_cill_log-processed.
+    ELSE.
+* If given IDOC and CILL ID does not exists already then this record is new record
+* hence creation date and time must be assigned. on contrary if it already exists
+* then creation date and time should not be changed
+      cs_cill_log-creation_date     = sy-datum.                    "Creation date
+      cs_cill_log-creation_time     = sy-uzeit.                    "Creation time
+    ENDIF.
+
+*------------------------------------------------------------------------------
+* Add the batch id
+*------------------------------------------------------------------------------
+    DATA(lv_len) = strlen( iv_cill_id ).
+    lv_len = lv_len - 8.
+
+    IF lv_len > 0.
+      cs_cill_log-batch_id = iv_cill_id+0(lv_len).
+    ENDIF.
+
+*------------------------------------------------------------------------------
+* Update IDOC processing date and time
+*------------------------------------------------------------------------------
+    cs_cill_log-idoc_process_date = sy-datum.
+    cs_cill_log-idoc_process_time = sy-uzeit.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_AMOUNT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_CURRENCY                    TYPE        BAPIACCR09_TAB
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_AMOUNT.
+
+    LOOP AT it_currency ASSIGNING FIELD-SYMBOL(<lfs_currency>) WHERE amt_doccur IS INITIAL.
+      READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_messages>) WITH KEY
+                                                                     id = gc_rw number = gc_033.
+      IF sy-subrc = 0.
+        <lfs_sim_messages>-row = <lfs_currency>-itemno_acc.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_BUSINESS_AREA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_TGSB                        TYPE        GTY_T_GSBER
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* | [<-->] CS_ACCOUNTGL                   TYPE        BAPIACGL09
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_BUSINESS_AREA.
+
+    IF cs_accountgl-bus_area IS INITIAL.
+      READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) WITH KEY id = gc_f5 number = gc_808 row = ''
+                     type = gc_e message_v1 = 'Bus. Area'(001) message_v2 = cs_accountgl-comp_code
+                      message_v3 = |{ cs_accountgl-gl_account ALPHA = OUT }|.
+      IF sy-subrc = 0.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+    ELSE.
+* Begin of change by R0T04VR
+      READ TABLE it_tgsb TRANSPORTING NO FIELDS WITH KEY gsber = cs_accountgl-bus_area BINARY SEARCH.
+      IF sy-subrc NE 0.
+        READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_f5 number = gc_162 row = '' type = gc_e
+          message_v1 = cs_accountgl-bus_area.
+        IF sy-subrc <> 0.
+          READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_fn number = gc_031 row = '' type = gc_e
+            message_v1 = cs_accountgl-bus_area.
+        ENDIF.
+      ENDIF.
+
+      IF <lfs_sim_msg> IS ASSIGNED.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+* End of change by R0T04VR
+    ENDIF.  "bus area
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_COMPANY_CODE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_BUKRS                       TYPE        GTY_T_BUKRS
+* | [<-->] CS_ACCOUNTGL                   TYPE        BAPIACGL09
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_COMPANY_CODE.
+    DATA: lv_saknr TYPE saknr.
+    DATA: ls_sim_msg TYPE gty_s_sim_messages. "G0V02PK
+
+    IF cs_accountgl-comp_code IS INITIAL.
+      READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) WITH KEY id = gc_f5 number = gc_165 type = gc_e row = ''.
+      IF sy-subrc = 0.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+    ELSE.
+      READ TABLE it_bukrs TRANSPORTING NO FIELDS WITH KEY bukrs = cs_accountgl-comp_code.
+      IF sy-subrc <> 0.
+*------------------------------------------------------------------------------
+* Invalid company code
+*------------------------------------------------------------------------------
+        READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_f5 number = gc_165 type = gc_e
+                      message_v1 = cs_accountgl-comp_code row = ''.
+      ELSE.
+*------------------------------------------------------------------------------
+* Valid company code but error message, if any like 351 or 808
+*------------------------------------------------------------------------------
+*  Begin of change G0V02PK DF4K906684 for CILL Payroll error INC36028823
+* If message exists with mapping to a different row, populate the same message to ct_sim_msg for the current line item also
+      READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id         = gc_f5
+                                                             number     = gc_351
+                                                             type       = gc_e
+                                                             message_v2 = cs_accountgl-comp_code.
+*      IF 1 = 2. " Testing Gov02pk
+      IF sy-subrc EQ 0.
+* If message exists and the row is not yet filled; then fill the current item number.
+        IF <lfs_sim_msg>-row IS INITIAL.
+* Populate the current item number as the row number.
+         <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+        ELSE.
+* If message exists, but row is already filled, then append a new message for the current line item.
+         ls_sim_msg = CORRESPONDING #( <lfs_sim_msg> ).
+* Populate the current Line Item
+         ls_sim_msg-row = cs_accountgl-itemno_Acc.
+         ct_sim_msg = VALUE #( BASE ct_sim_msg ( CORRESPONDING #( ls_sim_msg ) ) ).
+        ENDIF.
+        CLEAR ls_sim_msg.
+        UNASSIGN <lfs_sim_msg>.
+      ENDIF.
+*      ENDIF. "Testing G0v02pk
+* End of Change G0V02PK for CILL Payroll issue to populate the vendor/customer blocked error for the corresponding line items
+
+*        READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_f5 number = gc_351 type = gc_e
+*  Begin of changes VN5485T Defect no - FINTWO-40747
+*  This changes has been made in order to avoid valid entries geting updated in the ZGLT_LOG_MSG
+        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'        "vn5485t
+          EXPORTING
+            input  = cs_accountgl-gl_account
+          IMPORTING
+            output = lv_saknr.
+
+        READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_f5 type = gc_e
+                   message_v1 = lv_saknr  message_v2 = cs_accountgl-comp_code row = ''.
+        IF <lfs_sim_msg> IS ASSIGNED AND <lfs_sim_msg>-number = gc_808.
+* Added GL account no in selection criteria to avoid conflict, if multiple GL has the same
+* company code
+          UNASSIGN <lfs_sim_msg>.
+          CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+            EXPORTING
+              input  = cs_accountgl-gl_account
+            IMPORTING
+              output = lv_saknr.
+*          READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_f5 type = gc_e
+*                      message_v2 = cs_accountgl-comp_code message_v3 = lv_saknr row = ''.
+** Message F5 808 "Field Bus. Area is a required field for G/L account CC GL" is related to Busines Area and Should not be considered here
+** S0G00S3 | FINTWO-39144
+          LOOP AT ct_sim_msg ASSIGNING <lfs_sim_msg> WHERE id = gc_f5 AND type = gc_e
+                     AND  message_v2 = cs_accountgl-comp_code AND message_v3 = lv_saknr AND row = '' AND message_v1 NE 'Bus. Area'.
+
+          ENDLOOP.
+        ENDIF.
+
+*------------------------------------------------------------------------------
+* GL account and charts of account validation
+*------------------------------------------------------------------------------
+        IF <lfs_sim_msg> IS NOT ASSIGNED.
+          lv_saknr = cs_accountgl-gl_account.
+
+          CALL FUNCTION 'FI_GL_ACCOUNT_CHECK'
+            EXPORTING
+              i_bukrs      = cs_accountgl-comp_code
+              i_saknr      = lv_saknr
+            EXCEPTIONS
+              gl_account_a = 1
+              gl_account_b = 2
+              OTHERS       = 3.
+          IF sy-subrc <> 0.
+
+* The external conversion is required to select appropriate message
+            CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+              EXPORTING
+                input  = lv_saknr
+              IMPORTING
+                output = lv_saknr.
+
+            READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = sy-msgid number = sy-msgno type = gc_e
+                        message_v1 = lv_saknr row = ''.
+          ENDIF.
+        ENDIF.
+
+
+      ENDIF.  "company code
+
+*------------------------------------------------------------------------------
+* Assign the line number
+*------------------------------------------------------------------------------
+      IF <lfs_sim_msg> IS ASSIGNED.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+    ENDIF.
+
+* Clear objects
+    CLEAR: lv_saknr.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_COST_CENTER
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_COSTCENTER                  TYPE        GTY_T_COSTCENTER
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* | [<-->] CS_ACCOUNTGL                   TYPE        BAPIACGL09
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_COST_CENTER.
+
+    IF cs_accountgl-costcenter IS INITIAL.
+
+      READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) WITH KEY id = gc_f5 number = gc_808 row = ''
+                  type = gc_e message_v1 = 'Cost Ctr' message_v2 = cs_accountgl-comp_code
+                      message_v3 = |{ cs_accountgl-gl_account ALPHA = OUT }|.
+      IF sy-subrc = 0.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+
+    ELSE.
+
+      READ TABLE it_costcenter TRANSPORTING NO FIELDS WITH KEY kostl = cs_accountgl-costcenter BINARY SEARCH.
+      IF sy-subrc NE 0.
+        READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_ki number = gc_222 row = '' type = gc_e
+          message_v2 = cs_accountgl-costcenter.
+        IF sy-subrc <> 0.
+*
+        ENDIF.
+      ENDIF.
+
+      IF <lfs_sim_msg> IS ASSIGNED.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_CUSTOMER_CC
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] CS_ACCOUNTGL                   TYPE        BAPIACGL09
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_CUSTOMER_CC.
+* ************************************************************************
+*  Class           : ZFGLCL_CILL_OUT_INTF_I01418                       *
+*  Method          : VALIDATE_CUSTOMER_CC                              *
+*  Object ID       : I01528/I01418                                     *
+*  Title           : Outbound Recon Response                           *
+*  Author          : Lagisetty Deepthi Sree                            *
+*  Country         : Global                                            *
+*  Creation Date   : 01/09/2023                                        *
+*  Description     : To get error line item details                    *
+*----------------------------------------------------------------------*
+*  VN51ZYP     1/4/2022    DF4K905057 To get line item number details  *
+*                                      for customer and vendor errors  *
+************************************************************************
+*BOC by VN51ZYP
+    DATA: ls_sim_msg TYPE bapiret2.
+    IF cs_accountgl-comp_code IS NOT INITIAL.
+
+      READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) WITH KEY id = gc_f5 type = gc_e.
+      IF sy-subrc = 0.
+**to check for customer and Vendor error and update the line item number
+        IF ( <lfs_sim_msg>-number = gc_102 OR <lfs_sim_msg>-number = gc_104 ) AND
+           <lfs_sim_msg>-message_v1 = cs_accountgl-comp_code.
+
+          IF <lfs_sim_msg>-row IS INITIAL.
+            <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+          ELSE.
+            ls_sim_msg = <lfs_sim_msg>.
+            ls_sim_msg-row = cs_accountgl-itemno_acc.
+            APPEND ls_sim_msg TO ct_sim_msg.
+            CLEAR: ls_sim_msg.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+*EOC by VN51ZYP
+
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_DOCUMENT_TYPE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_BLART                       TYPE        GTY_T_BLART
+* | [<-->] CS_ACCOUNTGL                   TYPE        BAPIACGL09
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_DOCUMENT_TYPE.
+
+    IF NOT cs_accountgl-doc_type IS INITIAL.
+      READ TABLE it_blart TRANSPORTING NO FIELDS WITH KEY blart = cs_accountgl-doc_type.
+      IF sy-subrc <> 0.
+        READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) WITH KEY id = gc_f5 number = gc_814 type = gc_e
+                      message_v1 = cs_accountgl-doc_type row = ''.
+        IF sy-subrc = 0.
+          <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_PROFIT_CENTER
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_PRCTR                       TYPE        GTY_T_PRCTR
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* | [<-->] CS_ACCOUNTGL                   TYPE        BAPIACGL09
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_PROFIT_CENTER.
+
+    IF cs_accountgl-profit_ctr IS INITIAL.
+
+      READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) WITH KEY id = gc_f5 number = gc_808 row = ''
+                  type = gc_e message_v1 = 'Profit Ctr'(002) message_v2 = cs_accountgl-comp_code
+                      message_v3 = |{ cs_accountgl-gl_account ALPHA = OUT }|.
+      IF sy-subrc = 0.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+
+    ELSE.
+
+      READ TABLE it_prctr TRANSPORTING NO FIELDS WITH KEY prctr = cs_accountgl-profit_ctr BINARY SEARCH.
+      IF sy-subrc NE 0.
+        READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_KM number = gc_700 row = '' type = gc_e
+          message_v2 = cs_accountgl-profit_ctr.
+        IF sy-subrc <> 0.
+          READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_FAGL number = gc_001 row = '' type = gc_e
+            message_v1 = cs_accountgl-profit_ctr.
+          IF sy-subrc <> 0.
+            READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_KM number = gc_026 row = '' type = gc_e
+              message_v2 = cs_accountgl-profit_ctr.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+
+      IF <lfs_sim_msg> IS ASSIGNED.
+        <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZFGLCL_I01418_CILL_POC=>VALIDATE_REFERENCE_KEY
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] CS_ACCOUNTGL                   TYPE        BAPIACGL09
+* | [<-->] CT_SIM_MSG                     TYPE        GTY_T_SIM_MSG
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD VALIDATE_REFERENCE_KEY.
+
+    IF NOT cs_accountgl-ref_key_3 IS INITIAL.
+* Validate Reference Key 3 Value
+      zxxcl_data_validation=>validate_xref3(
+          EXPORTING
+            iv_bte            = space
+          IMPORTING
+            ev_subrc          = DATA(lv_subrc)
+          CHANGING
+            cv_xref3          = cs_accountgl-ref_key_3
+          EXCEPTIONS
+            invalid_amount    = 1
+            data_overflow     = 2
+            non_numeric       = 3
+            incorrect_decimal = 4
+            OTHERS            = 5 ).                     "#EC CI_SUBRC.
+      IF lv_subrc NE 0.
+        CASE lv_subrc.
+          WHEN 1.
+            READ TABLE ct_sim_msg ASSIGNING FIELD-SYMBOL(<lfs_sim_msg>) WITH KEY id = gc_zfgl  number = gc_004 type = gc_e row = ''.
+            IF sy-subrc = 0.
+              <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+            ENDIF.
+          WHEN 2.
+            READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_zfgl  number = gc_003 type = gc_e row = ''.
+            IF sy-subrc = 0.
+              <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+            ENDIF.
+          WHEN 3.
+            READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_zfgl  number = gc_002 type = gc_e row = ''.
+            IF sy-subrc = 0.
+              <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+            ENDIF.
+          WHEN 4.
+            READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_zfgl  number = gc_005 type = gc_e row = ''.
+            IF sy-subrc = 0.
+              <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+            ENDIF.
+          WHEN OTHERS.
+            READ TABLE ct_sim_msg ASSIGNING <lfs_sim_msg> WITH KEY id = gc_zfgl  number = gc_004 type = gc_e row = ''.
+            IF sy-subrc = 0.
+              <lfs_sim_msg>-row = cs_accountgl-itemno_acc.
+            ENDIF.
+        ENDCASE.
+      ENDIF.
+    ENDIF.  "ref key 3
+
+  ENDMETHOD.
+ENDCLASS.
